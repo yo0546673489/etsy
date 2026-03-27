@@ -2,12 +2,16 @@
 Reviews API Endpoints
 """
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, Query, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.core.database import get_db
 from app.api.dependencies import get_user_context as get_current_user_context, UserContext
+from app.models.reviews import Review
 from app.services.reviews_service import ReviewsService
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
@@ -96,3 +100,50 @@ async def sync_reviews(
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
+
+
+class SellerResponseBody(BaseModel):
+    response: str
+
+
+@router.put("/{review_id}/response")
+async def set_seller_response(
+    review_id: int,
+    body: SellerResponseBody,
+    context: UserContext = Depends(get_current_user_context),
+    db: Session = Depends(get_db),
+):
+    review = db.query(Review).filter(
+        Review.id == review_id,
+        Review.tenant_id == context.tenant_id,
+    ).first()
+
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    review.seller_response = body.response or None
+    review.seller_response_at = datetime.now(timezone.utc) if body.response else None
+    db.commit()
+
+    return {"id": review.id, "seller_response": review.seller_response, "seller_response_at": review.seller_response_at}
+
+
+@router.delete("/{review_id}/response")
+async def delete_seller_response(
+    review_id: int,
+    context: UserContext = Depends(get_current_user_context),
+    db: Session = Depends(get_db),
+):
+    review = db.query(Review).filter(
+        Review.id == review_id,
+        Review.tenant_id == context.tenant_id,
+    ).first()
+
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    review.seller_response = None
+    review.seller_response_at = None
+    db.commit()
+
+    return {"ok": True}

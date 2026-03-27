@@ -275,7 +275,9 @@ from app.api.endpoints import tasks as tasks_endpoint
 app.include_router(tasks_endpoint.router, prefix="/api/tasks", tags=["Tasks"])
 
 from app.api.endpoints import reviews as reviews_endpoint
+from app.api.endpoints import discounts as discounts_endpoint
 app.include_router(reviews_endpoint.router, prefix="/api", tags=["Reviews"])
+app.include_router(discounts_endpoint.router, prefix="/api", tags=["Discounts"])
 
 # Mount Prometheus metrics
 metrics_app = make_asgi_app()

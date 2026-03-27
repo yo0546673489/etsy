@@ -2,76 +2,74 @@
 
 ## ✅ מה בוצע היום:
 
-### מערכת הודעות חדשה (Etsy Messages VPS)
-- בנייה מאפס של מערכת עצמאית לסנכרון הודעות מ-Etsy
-- Email Listener (Gmail IMAP IDLE) — מזהה התראות Etsy חדשות
-- Browser Automation עם AdsPower + Playwright + HumanBehavior
-- PostgreSQL DB עם 4 טבלאות: stores, conversations, messages, reply_queue
-- BullMQ job queue עם 3 workers: syncConversation, initialSync, sendReply
-- Fastify API server עם routes לחנויות, שיחות, הודעות, תגובות
-- Socket.IO לעדכונים בזמן אמת
-- 44 קבצים נוצרו בתיקיית `הודעות/`
+### ביקורות (Reviews)
+- תיקון שמירת ביקורות מ-Etsy API (ID מגיע כ-`transaction_id`)
+- הצגת תמונה ושם מוצר על כל כרטיס ביקורת
+- Backfill של 8 ביקורות קיימות עם נתוני מוצר מה-DB
+- הוספת אפשרות תגובה פנימית ללקוח (שמירה רק ב-DB, לא דרך Etsy API)
+- כפתורי עריכה ומחיקה לתגובה שמורה
 
-### שילוב ממשק ההודעות ב-Profitly
-- בניית React frontend עם WhatsApp Web style (split pane)
-- רשימת שיחות 35% ימין + חלון צ'אט 65% שמאל
-- Avatar צבעוני לפי שם, date separators, skeleton loaders
-- Optimistic UI לשליחת הודעות (pending/sent/failed)
-- עיצוב בסגנון Profitly (ירוק #006d43)
-- Responsive למובייל
+### הנחות (Discounts) — חדש לחלוטין
+- בניית מודול הנחות שלם לפי מפרט BUILD_DISCOUNTS_PAGE.md
+- DB: טבלאות discount_rules + discount_tasks
+- Backend: Service + API endpoints (CRUD, toggle, tasks)
+- Frontend: דף /discounts עם רשימת כללים, Tabs, Modal יצירה/עריכה
+- תזמון: חד-פעמי + רוטציה לפי ימים
+- Validation: 30 יום מקסימום (מגבלת Etsy), שם מכירה אותיות+מספרים בלבד
 
-### שילוב ב-Sidebar
-- הוספת כפתור "הודעות" עם אייקון MessageCircle לכל תפקידי המשתמשים
+### UI / Sidebar
+- הוספת פריט "הנחות" עם אייקון Tag לסרגל הצד
+- הוספת כפתור "הגדרות" בתחתית הסרגל (מעל עזרה ויציאה)
+- הסרת בלוק מידע החנות (אווטאר + שם + "מוכר פרימיום") מהסרגל
 
-## 📁 קבצים שהשתנו:
+---
 
-### קבצים חדשים ב-apps/web:
-- `apps/web/lib/messages-api.ts` — API client לשרת ההודעות (פורט 3500)
-- `apps/web/app/messages/page.tsx` — עמוד הודעות מלא (WhatsApp Web layout)
-- `apps/web/app/messages/[id]/page.tsx` — redirect לעמוד הראשי
-- `apps/web/components/messages/MsgAvatar.tsx` — avatar עם צבע לפי שם
-- `apps/web/components/messages/MsgBubble.tsx` — בועת הודעה (לקוח/חנות)
-- `apps/web/components/messages/MsgConversationItem.tsx` — שורת שיחה
-- `apps/web/components/messages/MsgDateSeparator.tsx` — הפרדת תאריכים
-- `apps/web/components/messages/MsgSkeleton.tsx` — skeleton loader
+## קבצים שהשתנו / נוצרו:
 
-### קבצים ששונו ב-apps/web:
-- `apps/web/components/layout/Sidebar.tsx` — הוספת "הודעות" לכל nav lists
+### Backend
+- apps/api/app/models/discounts.py — חדש — מודלי DiscountRule + DiscountTask
+- apps/api/app/models/tenancy.py — הוספת relationship discount_rules ל-Shop
+- apps/api/app/models/__init__.py — רישום מודלי הנחות
+- apps/api/app/services/discounts_service.py — חדש — CRUD + task generation
+- apps/api/app/api/endpoints/discounts.py — חדש — API endpoints
+- apps/api/app/api/endpoints/reviews.py — הוספת PUT/DELETE /reviews/{id}/response
+- apps/api/app/services/reviews_service.py — חיבור לטבלת מוצרים לשליפת תמונה+שם
+- apps/api/main.py — רישום router הנחות
+- apps/api/alembic/versions/ec1e8d4b1e8e_...py — migration לטבלאות הנחות
 
-### מערכת עצמאית חדשה `הודעות/` (44 קבצים):
-- `package.json`, `tsconfig.json`, `docker-compose.yml`, `.env.example`
-- `src/index.ts` — entry point
-- `src/config/index.ts`, `src/utils/logger.ts`, `src/utils/hash.ts`
-- `src/db/connection.ts`, `src/db/migrations/001_initial.sql`
-- `src/adspower/controller.ts`
-- `src/browser/humanBehavior.ts`, `etsyScraper.ts`, `etsySender.ts`
-- `src/email/listener.ts`, `src/email/parser.ts`
-- `src/stores/resolver.ts`
-- `src/queue/setup.ts`, workers: `syncConversation.ts`, `initialSync.ts`, `sendReply.ts`
-- `src/sync/engine.ts`
-- `src/api/server.ts`, routes: `stores.ts`, `conversations.ts`, `messages.ts`, `replies.ts`
-- `scripts/seed-stores.ts` (24 חנויות), `scripts/inspect-selectors.ts`
-- `web/` — React frontend עצמאי (פורט 3501)
+### Frontend
+- apps/web/app/discounts/page.tsx — חדש — דף ניהול הנחות מלא
+- apps/web/app/reviews/page.tsx — הוספת UI תגובה לביקורת
+- apps/web/lib/api.ts — הוספת discountsApi + reviewsApi.setResponse/deleteResponse
+- apps/web/components/layout/Sidebar.tsx — הוספת הנחות, הגדרות, הסרת בלוק חנות
 
-## 🔗 חיבורים/אינטגרציות:
-- מערכת ההודעות מאזינה לפורט **3500** (API) ו-**3501** (Frontend)
-- Profitly מתחבר למערכת ההודעות דרך `NEXT_PUBLIC_MESSAGES_API_URL` (ברירת מחדל: `http://localhost:3500`)
-- AdsPower Local API: `http://local.adspower.net:50325`
-- Gmail IMAP IDLE לקבלת התראות Etsy
-- Socket.IO לעדכונים בזמן אמת
+---
 
-## ⏳ מה נשאר לעשות:
-- [ ] הפעלת שרת ההודעות: `cd הודעות && docker-compose up -d && npm install && npm run dev`
-- [ ] זיהוי סלקטורים אמיתיים של Etsy: `npx tsx scripts/inspect-selectors.ts 1`
-- [ ] עדכון סלקטורים ב-`src/browser/etsyScraper.ts` ו-`src/browser/etsySender.ts`
-- [ ] הפעלת שרת VPS + העברת תיקיית `הודעות/` לשרת
-- [ ] הגדרת `NEXT_PUBLIC_MESSAGES_API_URL` לכתובת ה-VPS
-- [ ] סנכרון ראשוני לכל 24 החנויות
-- [ ] Analytics dashboard מלא
-- [ ] Celery Beat task לסנכרון לדג'ר אוטומטי כל שעה
+## API Endpoints חדשים:
 
-## 📝 הערות חשובות:
-- הסלקטורים ב-etsyScraper/etsySender הם **PLACEHOLDERS** — חייבים להריץ inspect-selectors.ts לפני שהמערכת עובדת
-- Docker baked images — כל שינוי בקוד דורש `docker compose -p etsyauto up -d --build web`
-- מערכת ההודעות רצה בנפרד מה-Docker הראשי של Profitly
-- יתרת Etsy: ה-API מחזיר -₪9.38 (נכון), Etsy UI מציג -₪80.80 (כולל pending prolist)
+- GET /api/discounts/rules?shop_id=X
+- POST /api/discounts/rules?shop_id=X
+- PUT /api/discounts/rules/{id}?shop_id=X
+- DELETE /api/discounts/rules/{id}?shop_id=X
+- POST /api/discounts/rules/{id}/toggle?shop_id=X
+- GET /api/discounts/tasks?shop_id=X
+- PUT /api/reviews/{id}/response
+- DELETE /api/reviews/{id}/response
+
+---
+
+## מה נשאר לעשות:
+
+- חיבור automation server (AdsPower) לביצוע הנחות בפועל ב-Etsy
+- בחירת מוצרים ספציפיים ב-Modal הנחות
+- שליחת תגובות ביקורת ל-Etsy כשה-API יתמוך בזה
+- תיקוני UI Dashboard (מטבע ILS->שקל, badge format)
+
+---
+
+## הערות חשובות:
+
+- ה-web container הוא baked image — כל שינוי frontend דורש docker compose build web + up -d
+- ה-API container יש לו volume mount — שינויים Python נכנסים לאחר docker restart etsy-api
+- Etsy מגביל מכירות ל-30 יום מקסימום — validation קיים בצד לקוח
+- etsy_review_id מגיע מ-Etsy כ-transaction_id (לא review_id)

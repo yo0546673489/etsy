@@ -1577,8 +1577,8 @@ export interface Review {
   listing_title?: string;
   listing_image_url?: string;
   created_at?: string;
-  seller_response?: string;
-  seller_response_at?: string;
+  seller_response?: string | null;
+  seller_response_at?: string | null;
 }
 
 export interface ReviewStats {
@@ -1630,5 +1630,94 @@ export const reviewsApi = {
       '/api/reviews/sync?shop_id=' + shopId + '&full_sync=' + fullSync,
       { method: 'POST' }
     );
+  },
+
+  setResponse: async (reviewId: number, response: string) => {
+    return apiRequest<{ id: number; seller_response: string | null; seller_response_at: string | null }>(
+      `/api/reviews/${reviewId}/response`,
+      { method: 'PUT', body: JSON.stringify({ response }) }
+    );
+  },
+
+  deleteResponse: async (reviewId: number) => {
+    return apiRequest<{ ok: boolean }>(`/api/reviews/${reviewId}/response`, { method: 'DELETE' });
+  },
+};
+
+// ===== DISCOUNTS API =====
+
+export interface RotationItem {
+  day_of_week: number;
+  discount_value: number;
+}
+
+export interface DiscountRule {
+  id: number;
+  shop_id: number;
+  name: string;
+  discount_type: 'percentage' | 'fixed_amount';
+  discount_value: number;
+  scope: 'entire_shop' | 'specific_listings' | 'category';
+  listing_ids?: number[];
+  category_id?: string;
+  is_scheduled: boolean;
+  schedule_type?: 'one_time' | 'rotating';
+  start_date?: string;
+  end_date?: string;
+  rotation_config?: RotationItem[];
+  target_country?: string;
+  terms_text?: string;
+  etsy_sale_name?: string;
+  status: 'active' | 'paused' | 'completed' | 'draft';
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface DiscountTask {
+  id: number;
+  rule_id: number;
+  shop_id: number;
+  action: 'apply_discount' | 'remove_discount';
+  discount_value?: number;
+  scope: string;
+  listing_ids?: number[];
+  scheduled_for: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  completed_at?: string;
+  error_message?: string;
+  retry_count: number;
+}
+
+export const discountsApi = {
+  getRules: (shopId: number, status?: string) => {
+    const params = new URLSearchParams({ shop_id: shopId.toString() });
+    if (status) params.set('status', status);
+    return apiRequest<DiscountRule[]>(`/api/discounts/rules?${params}`);
+  },
+
+  createRule: (shopId: number, data: Partial<DiscountRule>) =>
+    apiRequest<DiscountRule>(`/api/discounts/rules?shop_id=${shopId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateRule: (shopId: number, ruleId: number, data: Partial<DiscountRule>) =>
+    apiRequest<DiscountRule>(`/api/discounts/rules/${ruleId}?shop_id=${shopId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  deleteRule: (shopId: number, ruleId: number) =>
+    apiRequest<{ success: boolean }>(`/api/discounts/rules/${ruleId}?shop_id=${shopId}`, { method: 'DELETE' }),
+
+  toggleRule: (shopId: number, ruleId: number) =>
+    apiRequest<DiscountRule>(`/api/discounts/rules/${ruleId}/toggle?shop_id=${shopId}`, { method: 'POST' }),
+
+  getTasks: (shopId: number, ruleId?: number, status?: string, limit = 50) => {
+    const params = new URLSearchParams({ shop_id: shopId.toString(), limit: limit.toString() });
+    if (ruleId) params.set('rule_id', ruleId.toString());
+    if (status) params.set('status', status);
+    return apiRequest<DiscountTask[]>(`/api/discounts/tasks?${params}`);
   },
 };

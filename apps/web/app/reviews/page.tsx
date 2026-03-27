@@ -5,7 +5,7 @@ import { useShop } from '@/lib/shop-context';
 import { useToast } from '@/lib/toast-context';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { reviewsApi, type Review, type ReviewStats } from '@/lib/api';
-import { Star, RefreshCw, MessageSquare, TrendingUp, ThumbsUp } from 'lucide-react';
+import { Star, RefreshCw, MessageSquare, TrendingUp, ThumbsUp, Pencil, Trash2, Check, X } from 'lucide-react';
 
 function cn(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
@@ -94,7 +94,45 @@ function formatTimeAgo(date: Date): string {
   return `לפני ${Math.floor(days / 365)} שנים`;
 }
 
-function ReviewCard({ review }: { review: Review }) {
+function ReviewCard({ review, onResponseSaved }: {
+  review: Review;
+  onResponseSaved: (id: number, response: string | null) => void;
+}) {
+  const { showToast } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(review.seller_response || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!draft.trim()) return;
+    setSaving(true);
+    try {
+      await reviewsApi.setResponse(review.id, draft.trim());
+      onResponseSaved(review.id, draft.trim());
+      setEditing(false);
+      showToast('התגובה נשמרה', 'success');
+    } catch {
+      showToast('שגיאה בשמירת התגובה', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setSaving(true);
+    try {
+      await reviewsApi.deleteResponse(review.id);
+      onResponseSaved(review.id, null);
+      setDraft('');
+      setEditing(false);
+      showToast('התגובה נמחקה', 'success');
+    } catch {
+      showToast('שגיאה במחיקת התגובה', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
       <div className="flex gap-4">
@@ -127,13 +165,69 @@ function ReviewCard({ review }: { review: Review }) {
             </p>
           )}
           {review.listing_title && (
-            <p className="text-xs text-gray-400">מוצר: {review.listing_title}</p>
+            <p className="text-xs text-gray-400 mb-3">מוצר: {review.listing_title}</p>
           )}
-          {review.seller_response && (
-            <div className="mt-3 p-3 bg-green-50 rounded-lg border-r-2 border-[#006d43]">
-              <p className="text-xs text-[#006d43] font-medium mb-1">תגובתך:</p>
-              <p className="text-sm text-gray-600">{review.seller_response}</p>
+
+          {/* Seller response area */}
+          {review.seller_response && !editing ? (
+            <div className="mt-2 p-3 bg-green-50 rounded-lg border-r-2 border-[#006d43]">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setDraft(review.seller_response || ''); setEditing(true); }}
+                    className="text-[#006d43] hover:text-[#005535] transition-colors"
+                    title="ערוך תגובה"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={saving}
+                    className="text-red-400 hover:text-red-600 transition-colors"
+                    title="מחק תגובה"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p className="text-xs text-[#006d43] font-medium">תגובתך:</p>
+              </div>
+              <p className="text-sm text-gray-600 text-right">{review.seller_response}</p>
             </div>
+          ) : editing ? (
+            <div className="mt-2">
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="כתוב תגובה ללקוח..."
+                rows={3}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#006d43] resize-none text-right"
+                dir="rtl"
+              />
+              <div className="flex gap-2 mt-2 justify-end">
+                <button
+                  onClick={() => setEditing(false)}
+                  disabled={saving}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" /> ביטול
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving || !draft.trim()}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs bg-[#006d43] text-white rounded-lg hover:bg-[#005535] transition-colors disabled:opacity-50"
+                >
+                  <Check className="w-3.5 h-3.5" /> {saving ? 'שומר...' : 'שמור'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setEditing(true)}
+              className="mt-1 flex items-center gap-1.5 text-xs text-[#006d43] hover:text-[#005535] transition-colors"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              הגב ללקוח
+            </button>
           )}
         </div>
       </div>
@@ -300,7 +394,17 @@ export default function ReviewsPage() {
                   <p className="text-gray-400">לחץ על &quot;סנכרן ביקורות&quot; כדי לייבא ביקורות מ-Etsy</p>
                 </div>
               ) : (
-                reviews.map((review) => <ReviewCard key={review.id} review={review} />)
+                reviews.map((review) => (
+                  <ReviewCard
+                    key={review.id}
+                    review={review}
+                    onResponseSaved={(id, response) => {
+                      setReviews((prev) => prev.map((r) =>
+                        r.id === id ? { ...r, seller_response: response } : r
+                      ));
+                    }}
+                  />
+                ))
               )}
             </div>
 

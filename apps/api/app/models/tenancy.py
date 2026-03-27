@@ -199,6 +199,7 @@ class Shop(Base):
     oauth_tokens = relationship("OAuthToken", back_populates="shop", cascade="all, delete-orphan")
     ingestion_batches = relationship("IngestionBatch", back_populates="shop", cascade="all, delete-orphan")
     reviews = relationship("Review", back_populates="shop", cascade="all, delete-orphan")
+    discount_rules = relationship("DiscountRule", back_populates="shop", cascade="all, delete-orphan")
 
 
 class ConnectLink(Base):

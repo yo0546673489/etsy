@@ -18,6 +18,7 @@ from app.models.notifications import Notification, NotificationType
 from app.models.ingestion import IngestionBatch
 from app.models.messaging_access_token import MessagingAccessToken
 from app.models.reviews import Review, ShopReviewStats
+from app.models.discounts import DiscountRule, DiscountTask
 
 # Make models available at package level
 __all__ = [
@@ -56,4 +57,6 @@ __all__ = [
     "MessagingAccessToken",
     "Review",
     "ShopReviewStats",
+    "DiscountRule",
+    "DiscountTask",
 ]

@@ -3,6 +3,7 @@ Reviews Service
 Handles syncing reviews from Etsy API and computing statistics.
 """
 
+import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
@@ -12,6 +13,7 @@ from sqlalchemy import func, and_, desc
 
 from app.models.reviews import Review, ShopReviewStats
 from app.models.tenancy import Shop
+from app.models.products import Product
 from app.services.etsy_client import EtsyClient
 
 logger = logging.getLogger(__name__)
@@ -87,7 +89,11 @@ class ReviewsService:
         }
 
     def _upsert_review(self, shop: Shop, data: Dict[str, Any]) -> bool:
-        etsy_review_id = data.get("shop_review_id") or data.get("review_id")
+        etsy_review_id = (
+            data.get("shop_review_id")
+            or data.get("review_id")
+            or data.get("transaction_id")
+        )
         if not etsy_review_id:
             return False
 
@@ -102,14 +108,21 @@ class ReviewsService:
         etsy_created = datetime.fromtimestamp(created_timestamp, tz=timezone.utc) if created_timestamp else None
         etsy_updated = datetime.fromtimestamp(updated_timestamp, tz=timezone.utc) if updated_timestamp else None
 
+        listing_id = data.get("listing_id")
+        listing_title, listing_image_url = self._get_product_info(shop, listing_id)
+
         if existing:
             existing.rating = data.get("rating", existing.rating)
             existing.review_text = data.get("review") or data.get("message") or existing.review_text
             existing.language = data.get("language", existing.language)
             existing.buyer_user_id = data.get("buyer_user_id", existing.buyer_user_id)
-            existing.etsy_listing_id = data.get("listing_id", existing.etsy_listing_id)
+            existing.etsy_listing_id = listing_id or existing.etsy_listing_id
             existing.etsy_transaction_id = data.get("transaction_id", existing.etsy_transaction_id)
             existing.etsy_updated_at = etsy_updated
+            if listing_title:
+                existing.listing_title = listing_title
+            if listing_image_url:
+                existing.listing_image_url = listing_image_url
             return False
         else:
             review = Review(
@@ -117,20 +130,43 @@ class ReviewsService:
                 shop_id=shop.id,
                 etsy_review_id=etsy_review_id,
                 etsy_shop_id=shop.etsy_shop_id,
-                etsy_listing_id=data.get("listing_id"),
+                etsy_listing_id=listing_id,
                 etsy_transaction_id=data.get("transaction_id"),
                 rating=data.get("rating", 5),
                 review_text=data.get("review") or data.get("message"),
                 language=data.get("language"),
                 buyer_user_id=data.get("buyer_user_id"),
                 buyer_name=data.get("buyer_name"),
-                listing_title=data.get("listing_title"),
-                listing_image_url=data.get("image_url_fullxfull"),
+                listing_title=listing_title,
+                listing_image_url=listing_image_url,
                 etsy_created_at=etsy_created,
                 etsy_updated_at=etsy_updated,
             )
             self.db.add(review)
             return True
+
+    def _get_product_info(self, shop: Shop, listing_id: Any):
+        if not listing_id:
+            return None, None
+        product = self.db.query(Product).filter(
+            Product.shop_id == shop.id,
+            Product.etsy_listing_id == str(listing_id),
+        ).first()
+        if not product:
+            return None, None
+        title = product.title_raw
+        image_url = None
+        images = product.images
+        if images:
+            if isinstance(images, list) and len(images) > 0:
+                image_url = images[0]
+            elif isinstance(images, str):
+                try:
+                    parsed = json.loads(images)
+                    image_url = parsed[0] if parsed else None
+                except Exception:
+                    pass
+        return title, image_url
 
     def _update_shop_stats(self, shop: Shop) -> ShopReviewStats:
         stats = self.db.query(ShopReviewStats).filter(
