@@ -1,4 +1,4 @@
-/**
+﻿/**
  * API Client for Profitlymation Platform
  * Handles all HTTP requests to the FastAPI backend
  */
@@ -114,7 +114,7 @@ export interface MessageListResponse {
 }
 
 /**
- * @deprecated No longer used — auth tokens are now HttpOnly cookies.
+ * @deprecated No longer used ג€” auth tokens are now HttpOnly cookies.
  * Kept as no-ops for any lingering call-sites during migration.
  */
 export function setAuthToken(_token: string): void { /* no-op */ }
@@ -152,7 +152,7 @@ async function tryRefreshToken(): Promise<boolean> {
   return refreshPromise;
 }
 
-/** Endpoints that establish a session — never try refresh on 401 (would hide real auth errors) */
+/** Endpoints that establish a session ג€” never try refresh on 401 (would hide real auth errors) */
 const AUTH_ESTABLISH_ENDPOINTS = ['/api/auth/login', '/api/auth/register', '/api/auth/google'];
 
 /**
@@ -183,7 +183,7 @@ async function apiRequest<T>(
 
   let response = await doFetch();
 
-  // 401 interceptor — attempt a silent token refresh once (skip for auth-establishing endpoints)
+  // 401 interceptor ג€” attempt a silent token refresh once (skip for auth-establishing endpoints)
   const shouldSkipRefresh = skipRefreshOn401 ?? AUTH_ESTABLISH_ENDPOINTS.some((e) => endpoint.startsWith(e));
   if (response.status === 401 && !shouldSkipRefresh) {
     const refreshed = await tryRefreshToken();
@@ -1560,5 +1560,75 @@ export const currencyApi = {
     });
     if (params.date) search.append('date', params.date);
     return apiRequest(`/api/currency/convert?${search.toString()}`);
+  },
+};
+
+// ============ Reviews API ============
+
+export interface Review {
+  id: number;
+  shop_id: number;
+  etsy_review_id: number;
+  etsy_listing_id?: number;
+  rating: number;
+  review_text?: string;
+  language?: string;
+  buyer_name?: string;
+  listing_title?: string;
+  listing_image_url?: string;
+  created_at?: string;
+  seller_response?: string;
+  seller_response_at?: string;
+}
+
+export interface ReviewStats {
+  total_reviews: number;
+  average_rating: number;
+  average_rating_display: string;
+  rating_distribution: { 5: number; 4: number; 3: number; 2: number; 1: number };
+  reviews_last_30_days: number;
+  avg_rating_last_30_days: number;
+  last_review_at?: string;
+}
+
+export interface ReviewsResponse {
+  reviews: Review[];
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+}
+
+export const reviewsApi = {
+  getReviews: async (params?: {
+    shop_id?: number; shop_ids?: string; rating?: number;
+    min_rating?: number; max_rating?: number; has_text?: boolean;
+    limit?: number; offset?: number; sort_by?: string;
+  }): Promise<ReviewsResponse> => {
+    const query = new URLSearchParams();
+    if (params?.shop_id) query.set('shop_id', String(params.shop_id));
+    if (params?.shop_ids) query.set('shop_ids', params.shop_ids);
+    if (params?.rating) query.set('rating', String(params.rating));
+    if (params?.min_rating) query.set('min_rating', String(params.min_rating));
+    if (params?.max_rating) query.set('max_rating', String(params.max_rating));
+    if (params?.has_text !== undefined) query.set('has_text', String(params.has_text));
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.offset !== undefined) query.set('offset', String(params.offset));
+    if (params?.sort_by) query.set('sort_by', params.sort_by);
+    return apiRequest<ReviewsResponse>('/api/reviews?' + query.toString());
+  },
+
+  getStats: async (params?: { shop_id?: number; shop_ids?: string }): Promise<ReviewStats> => {
+    const query = new URLSearchParams();
+    if (params?.shop_id) query.set('shop_id', String(params.shop_id));
+    if (params?.shop_ids) query.set('shop_ids', params.shop_ids);
+    return apiRequest<ReviewStats>('/api/reviews/stats?' + query.toString());
+  },
+
+  syncReviews: async (shopId: number, fullSync: boolean = false) => {
+    return apiRequest<{ new_reviews: number; updated_reviews: number; total_processed: number }>(
+      '/api/reviews/sync?shop_id=' + shopId + '&full_sync=' + fullSync,
+      { method: 'POST' }
+    );
   },
 };

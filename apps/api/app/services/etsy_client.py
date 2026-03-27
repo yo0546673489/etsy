@@ -745,3 +745,55 @@ class EtsyClient:
             f"/application/shops/{etsy_shop_id}/receipts/{receipt_id}/payments",
         )
 
+
+    # ==================== Reviews Methods ====================
+
+    async def get_shop_reviews(
+        self,
+        shop_id: int,
+        etsy_shop_id: str,
+        limit: int = 25,
+        offset: int = 0,
+        min_created: Optional[int] = None,
+        max_created: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        params = {
+            'limit': min(limit, 100),
+            'offset': offset,
+        }
+        if min_created is not None:
+            params['min_created'] = min_created
+        if max_created is not None:
+            params['max_created'] = max_created
+
+        return await self._make_request(
+            shop_id,
+            'GET',
+            f'/application/shops/{etsy_shop_id}/reviews',
+            params=params,
+        )
+
+    async def get_listing_reviews(
+        self,
+        shop_id: int,
+        listing_id: str,
+        limit: int = 25,
+        offset: int = 0,
+        min_created: Optional[int] = None,
+        max_created: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        params = {
+            'limit': min(limit, 100),
+            'offset': offset,
+        }
+        if min_created is not None:
+            params['min_created'] = min_created
+        if max_created is not None:
+            params['max_created'] = max_created
+
+        return await self._make_request(
+            shop_id,
+            'GET',
+            f'/application/listings/{listing_id}/reviews',
+            params=params,
+        )

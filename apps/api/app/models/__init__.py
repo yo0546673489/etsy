@@ -17,6 +17,7 @@ from app.models.webhooks import WebhookEvent
 from app.models.notifications import Notification, NotificationType
 from app.models.ingestion import IngestionBatch
 from app.models.messaging_access_token import MessagingAccessToken
+from app.models.reviews import Review, ShopReviewStats
 
 # Make models available at package level
 __all__ = [
@@ -53,4 +54,6 @@ __all__ = [
     # Ingestion models
     "IngestionBatch",
     "MessagingAccessToken",
+    "Review",
+    "ShopReviewStats",
 ]

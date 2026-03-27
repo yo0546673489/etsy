@@ -13,6 +13,7 @@ import {
   LogOut,
   Link as LinkIcon,
   Check,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/language-context';
@@ -32,6 +33,7 @@ const ownerNavItems: NavItem[] = [
   { name: 'nav.products',   href: '/products',         icon: Package },
   { name: 'nav.analytics',  href: '/analytics',        icon: BarChart3 },
   { name: 'nav.financials', href: '/financials',       icon: Wallet },
+  { name: 'ביקורות',        href: '/reviews',          icon: Star },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -40,6 +42,7 @@ const adminNavItems: NavItem[] = [
   { name: 'nav.products',   href: '/products',         icon: Package },
   { name: 'nav.analytics',  href: '/analytics',        icon: BarChart3 },
   { name: 'nav.financials', href: '/financials',       icon: Wallet },
+  { name: 'ביקורות',        href: '/reviews',          icon: Star },
 ];
 
 const memberNavItems: NavItem[] = [
