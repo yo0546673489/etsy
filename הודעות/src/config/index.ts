@@ -24,4 +24,7 @@ export const config = {
   frontend: {
     url: process.env.FRONTEND_URL || 'http://localhost:3501',
   },
+  ai: {
+    apiKey: process.env.ANTHROPIC_API_KEY || '',
+  },
 };

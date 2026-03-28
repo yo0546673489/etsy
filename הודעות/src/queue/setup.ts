@@ -25,6 +25,22 @@ export interface SendReplyJobData {
   messageText: string;
 }
 
+export interface ReplyToReviewJobData {
+  reviewReplyId: number;
+  storeId: number;
+  profileId: string;
+  replyText: string;
+  shopName: string;
+}
+
+export interface ExecuteDiscountJobData {
+  discountTaskId: number;
+  storeId: number;
+  profileId: string;
+  shopName: string;
+  taskType: 'create_sale' | 'end_sale' | 'update_sale';
+}
+
 function getRedisConnection() {
   try {
     const url = new URL(config.redis.url);
@@ -38,6 +54,8 @@ export class JobQueue {
   public syncQueue: Queue;
   public initialSyncQueue: Queue;
   public replyQueue: Queue;
+  public reviewReplyQueue: Queue;
+  public discountQueue: Queue;
   private activeProfiles: Set<string> = new Set();
 
   constructor() {
@@ -45,6 +63,8 @@ export class JobQueue {
     this.syncQueue = new Queue('sync-conversation', { connection });
     this.initialSyncQueue = new Queue('initial-sync', { connection });
     this.replyQueue = new Queue('send-reply', { connection });
+    this.reviewReplyQueue = new Queue('reply-to-review', { connection });
+    this.discountQueue = new Queue('execute-discount', { connection });
   }
 
   async addSyncConversationJob(data: SyncConversationJobData): Promise<void> {
@@ -74,6 +94,28 @@ export class JobQueue {
       jobId: `reply-${data.replyQueueId}`,
     });
     logger.info(`Added reply job for conversation ${data.conversationId}`);
+  }
+
+  async addReviewReplyJob(data: ReplyToReviewJobData): Promise<void> {
+    await this.reviewReplyQueue.add('review-reply', data, {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 },
+      jobId: `review-reply-${data.reviewReplyId}`,
+      removeOnComplete: 100,
+      removeOnFail: 50,
+    });
+    logger.info(`Added review reply job for review_replies.id=${data.reviewReplyId}`);
+  }
+
+  async addDiscountJob(data: ExecuteDiscountJobData): Promise<void> {
+    await this.discountQueue.add('discount', data, {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 },
+      jobId: `discount-${data.discountTaskId}`,
+      removeOnComplete: 100,
+      removeOnFail: 50,
+    });
+    logger.info(`Added discount job: ${data.taskType} for store ${data.storeId}`);
   }
 
   isProfileLocked(profileId: string): boolean { return this.activeProfiles.has(profileId); }

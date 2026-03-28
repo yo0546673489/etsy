@@ -6,6 +6,8 @@ import { EmailListener } from './email/listener';
 import { createSyncWorker } from './queue/workers/syncConversation';
 import { createInitialSyncWorker } from './queue/workers/initialSync';
 import { createReplyWorker } from './queue/workers/sendReply';
+import { createReviewReplyWorker } from './queue/workers/replyToReview';
+import { createDiscountWorker } from './queue/workers/executeDiscount';
 import { createApiServer } from './api/server';
 import { logger } from './utils/logger';
 
@@ -18,12 +20,15 @@ async function main() {
 
   const fs = await import('fs');
   const path = await import('path');
-  const migrationPath = path.join(__dirname, 'db/migrations/001_initial.sql');
-  if (fs.existsSync(migrationPath)) {
-    const sql = fs.readFileSync(migrationPath, 'utf-8');
-    await pool.query(sql);
-    logger.info('Migrations applied');
+  const migrations = ['001_initial.sql', '002_reviews_discounts.sql'];
+  for (const migration of migrations) {
+    const migrationPath = path.join(__dirname, `db/migrations/${migration}`);
+    if (fs.existsSync(migrationPath)) {
+      const sql = fs.readFileSync(migrationPath, 'utf-8');
+      await pool.query(sql);
+    }
   }
+  logger.info('Migrations applied');
 
   const resolver = new StoreResolver(pool);
   await resolver.loadAll();
@@ -33,7 +38,9 @@ async function main() {
   const syncWorker = createSyncWorker(pool, jobQueue);
   const initialSyncWorker = createInitialSyncWorker(pool, jobQueue);
   const replyWorker = createReplyWorker(pool, jobQueue);
-  logger.info('Workers started');
+  const reviewReplyWorker = createReviewReplyWorker(pool, jobQueue);
+  const discountWorker = createDiscountWorker(pool, jobQueue);
+  logger.info('Workers started (messages + reviews + discounts)');
 
   const { fastify, io } = await createApiServer(pool, jobQueue, resolver);
 
@@ -50,6 +57,8 @@ async function main() {
     await syncWorker.close();
     await initialSyncWorker.close();
     await replyWorker.close();
+    await reviewReplyWorker.close();
+    await discountWorker.close();
     await fastify.close();
     await pool.end();
     process.exit(0);
@@ -58,7 +67,7 @@ async function main() {
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 
-  logger.info('=== Etsy Messaging System is running ===');
+  logger.info('=== Etsy Automation Server is running ===');
 }
 
 main().catch((error) => {
