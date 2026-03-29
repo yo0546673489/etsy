@@ -70,26 +70,15 @@ celery_app.conf.beat_schedule = {
         "task": "app.worker.tasks.token_tasks.refresh_expiring_tokens",
         "schedule": 3600.0,  # Every hour
     },
-    "sync-products-every-6-hours": {
-        "task": "app.worker.tasks.product_sync_tasks.sync_all_shops_products",
-        "schedule": 21600.0,  # Every 6 hours
-    },
-    "sync-orders-every-15-minutes": {
+    "sync-orders-every-2-minutes": {
         "task": "app.worker.tasks.order_tasks.sync_orders",
-        "schedule": 900.0,  # Every 15 minutes
+        "schedule": 120.0,  # Every 2 minutes — commercial rate limits allow this
     },
     "reconcile-orders-hourly": {
         "task": "app.worker.tasks.order_tasks.reconcile_orders",
         "schedule": 3600.0,  # Every hour
     },
-    "sync-ledger-entries-every-5-minutes": {
-        "task": "app.worker.tasks.financial_tasks.sync_ledger_entries",
-        "schedule": 300.0,  # Every 5 minutes
-    },
-    "sync-payment-details-every-5-minutes": {
-        "task": "app.worker.tasks.financial_tasks.sync_payment_details",
-        "schedule": 300.0,  # Every 5 minutes
-    },
+    # Products, ledger, and payment details are synced on user login — not on a schedule
     "fetch-daily-exchange-rates": {
         "task": "app.worker.tasks.exchange_rate_tasks.fetch_daily_exchange_rates",
         "schedule": 86400.0,  # Every 24 hours (daily)

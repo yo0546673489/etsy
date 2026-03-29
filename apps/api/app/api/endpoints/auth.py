@@ -23,7 +23,7 @@ from app.core.security import (
 from app.core.email import generate_token, send_verification_email, send_password_reset_email, send_password_changed_notification
 from app.core.config import settings
 from app.core.password_validator import validate_password as validate_password_strength
-from app.models.tenancy import User, Tenant, Membership
+from app.models.tenancy import User, Tenant, Membership, Shop
 from app.models.oauth import OAuthProvider
 from jose.exceptions import JWTError, ExpiredSignatureError
 
@@ -132,11 +132,13 @@ class LoginRequest(BaseModel):
 
 
 class TokenResponse(BaseModel):
-    """Auth response — token is now sent via HttpOnly cookie, not in body."""
+    """Auth response — token is sent via HttpOnly cookie AND in body for mobile clients."""
     token_type: str = "bearer"
     expires_in: int
     user: dict
     tenant: dict
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
 
 
 @router.post("/register", response_model=TokenResponse, tags=["Auth"])
@@ -237,7 +239,9 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
             "name": tenant.name,
             "role": "owner",
             "messaging_access": getattr(tenant, "messaging_access", "none"),
-        }
+        },
+        access_token=access_token,
+        refresh_token=refresh_tok,
     )
     response = JSONResponse(content=body.model_dump())
     set_auth_cookies(response, access_token, refresh_tok)
@@ -385,8 +389,26 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
             "description": tenant.description,
             "onboarding_completed": tenant.onboarding_completed,
             "messaging_access": getattr(tenant, "messaging_access", "none"),
-        }
+        },
+        access_token=access_token,
+        refresh_token=refresh_tok,
     )
+
+    # Trigger on-login sync for all connected shops (products, ledger, payments)
+    try:
+        from app.worker.tasks.product_sync_tasks import sync_products_from_etsy
+        from app.worker.tasks.financial_tasks import sync_ledger_entries, sync_payment_details
+        connected_shops = db.query(Shop).filter(
+            Shop.tenant_id == membership.tenant_id,
+            Shop.status == 'connected'
+        ).all()
+        for shop in connected_shops:
+            sync_products_from_etsy.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
+            sync_ledger_entries.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
+            sync_payment_details.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
+    except Exception:
+        pass  # Never block login due to sync failure
+
     response = JSONResponse(content=body.model_dump())
     set_auth_cookies(response, access_token, refresh_tok)
     return response
