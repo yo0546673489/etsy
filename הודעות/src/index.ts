@@ -6,11 +6,14 @@ import { EmailListener } from './email/listener';
 import { createSyncWorker } from './queue/workers/syncConversation';
 import { createInitialSyncWorker } from './queue/workers/initialSync';
 import { createReplyWorker } from './queue/workers/sendReply';
+import { createReviewReplyWorker } from './queue/workers/replyToReview';
+import { createDiscountWorker } from './queue/workers/executeDiscount';
 import { createApiServer } from './api/server';
+import { DiscountRotationScheduler } from './scheduler/discountRotation';
 import { logger } from './utils/logger';
 
 async function main() {
-  logger.info('Starting Etsy Messaging System...');
+  logger.info('Starting Etsy Automation System...');
 
   const pool = new Pool({ connectionString: config.db.url });
   await pool.query('SELECT 1');
@@ -32,12 +35,23 @@ async function main() {
 
   const jobQueue = new JobQueue();
 
+  // Workers — הודעות
   const syncWorker = createSyncWorker(pool, jobQueue);
   const initialSyncWorker = createInitialSyncWorker(pool, jobQueue);
   const replyWorker = createReplyWorker(pool, jobQueue);
+
+  // Workers — ביקורות + הנחות
+  const reviewReplyWorker = createReviewReplyWorker(pool);
+  const discountWorker = createDiscountWorker(pool);
+
   logger.info('Workers started');
 
   const { fastify, io } = await createApiServer(pool, jobQueue, resolver);
+
+  // Scheduler — רוטציית הנחות
+  const discountScheduler = new DiscountRotationScheduler(pool, jobQueue.discountQueue, resolver);
+  discountScheduler.start();
+  logger.info('Discount rotation scheduler started');
 
   if (config.imap.user && config.imap.password) {
     const emailListener = new EmailListener(resolver, jobQueue);
@@ -49,9 +63,12 @@ async function main() {
 
   const shutdown = async () => {
     logger.info('Shutting down...');
+    discountScheduler.stop();
     await syncWorker.close();
     await initialSyncWorker.close();
     await replyWorker.close();
+    await reviewReplyWorker.close();
+    await discountWorker.close();
     await fastify.close();
     await pool.end();
     process.exit(0);
@@ -60,7 +77,8 @@ async function main() {
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
 
-  logger.info('=== Etsy Messaging System is running ===');
+  logger.info('=== Etsy Automation System is running ===');
+  logger.info('Features: Messages | Reviews | Discounts | AI Replies');
 }
 
 main().catch((error) => {
