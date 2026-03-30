@@ -75,7 +75,7 @@ export default function ForgotPasswordPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-teal-500 mb-4">
             <Mail className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Forgot Password?</h1>
+          <h1 className="text-3xl font-bold text-white mb-2" dir="ltr">Forgot Password?</h1>
           <p className="text-slate-400">
             Enter your email and we'll send you a reset link
           </p>
