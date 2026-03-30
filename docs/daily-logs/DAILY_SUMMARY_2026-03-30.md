@@ -2,32 +2,53 @@
 
 ## ✅ מה בוצע היום:
 
-### 🚀 העלאה לשרת (Deployment)
-- תוקנה בעיית ufw שחסמה SSH (port 22) — נפתחה גישה דרך Remote Console של Kamatera
-- הותקן ו-הוגדר nginx על השרת `185.241.4.225`
-- הופעל SSL דרך Let's Encrypt עבור `https://yaroncohen.cc`
-- עודכן `.env` בשרת עם הדומיין החדש
+### 🔑 פתרון בעיית SSH (ufw חסם port 22)
+- SSH היה חסום לחלוטין מהסשן הקודם (הופעל ufw בלי לפתוח port 22)
+- נפתחה גישה דרך **Kamatera Remote Console** (noVNC בדפדפן)
+- תהליך ה-PK: "Retrieve lost PK" → קיבלנו token+passphrase במייל → שחזרנו private key → הדבקנו → קיבלנו סיסמת שרת: `Profitly2026!@#` (לא עבדה בגלל `@`) → שחזרנו שוב ← קיבלנו `aA@05466734890` → הצלחנו להיכנס דרך clipboard של noVNC
+- הרצנו: `ufw allow 22 && ufw reload` → SSH פתוח
 
-### 🔧 תיקוני קישורים ו-OAuth
-- עודכן `FRONTEND_URL` מ-`http://185.241.4.225:3000` ל-`https://yaroncohen.cc`
-- עודכן `NEXTAUTH_URL`, `ETSY_REDIRECT_URI`, `GOOGLE_REDIRECT_URI`
-- הוסף `https://yaroncohen.cc` ל-Google Cloud Console (Authorized JavaScript origins + redirect URIs)
-- הוסף `https://yaroncohen.cc/oauth/etsy/callback` ל-Etsy Developer Console
-- נמחק A record ישן (2.57.91.91) ב-Hostinger DNS, נשמר הנכון (185.241.4.225)
+### 🌐 הגדרת nginx + דומיין
+- הותקן nginx: `apt update && apt install nginx -y`
+- נוצר config: `/etc/nginx/sites-available/profitly` — proxy מ-80 ל-3000, ומ-/api ל-8080
+- נפתחו ports 80 ו-443 ב-ufw
+- נמחק A record ישן ב-Hostinger DNS (`2.57.91.91`) — נשאר רק `185.241.4.225`
 
-### 🎨 תיקוני UI — RTL
-- `NotificationPanel.tsx`: שונה `right-0` ל-`end-0`, `ml-auto` ל-`ms-auto`
-- `TopBar.tsx`: שונו כל 3 dropdown menus מ-`right-0` ל-`end-0` לתמיכה נכונה ב-RTL
+### 🔒 SSL Let's Encrypt
+- הותקן certbot: `apt install certbot python3-certbot-nginx -y`
+- ניסיון ראשון נכשל — `www.yaroncohen.cc` עדיין הצביע ל-`2.57.91.91` (DNS לא התפשט)
+- הצלחנו עם domain בלבד: `certbot --nginx -d yaroncohen.cc`
+- תעודה תקפה עד **27/06/2026**, מתחדשת אוטומטית
+
+### 🔧 עדכון .env בשרת
+תוקנו 4 משתנים ב-`/opt/profitly/.env`:
+```
+NEXTAUTH_URL: http://185.241.4.225:3000 → https://yaroncohen.cc
+ETSY_REDIRECT_URI: http://185.241.4.225:3000/... → https://yaroncohen.cc/...
+GOOGLE_REDIRECT_URI: http://185.241.4.225:3000/... → https://yaroncohen.cc/...
+FRONTEND_URL: http://185.241.4.225:3000 → https://yaroncohen.cc
+```
+(FRONTEND_URL גורם לכפתור "חבר חנות חדשה" לייצר URL נכון)
+
+### 🔑 עדכון Google Cloud Console
+- נפתח: `console.cloud.google.com` → APIs & Services → Credentials → **Profitly Web**
+- הוסף ל-**Authorized JavaScript origins**: `https://yaroncohen.cc`
+- הוסף ל-**Authorized redirect URIs**: `https://yaroncohen.cc/api/oauth/google/callback`
+
+### 🏪 עדכון Etsy Developer Console
+- נפתח: `etsy.com/developers/edit/[app-id]/callbacks`
+- הוסף: `https://yaroncohen.cc/oauth/etsy/callback`
+
+### 🎨 תיקוני RTL — Dropdowns
+**בעיה**: כל ה-dropdown menus (notifications, profile, shop selector, language) נפתחו בצד שמאל במקום ימין בממשק העברי (RTL).
+**פתרון**: החלפת `right-0` ב-`end-0` (Tailwind logical properties שמתאימות ל-RTL/LTR אוטומטית):
+
+- `NotificationPanel.tsx`: `right-0` → `end-0`, `ml-auto` → `ms-auto`
+- `TopBar.tsx`: 3 dropdowns שונו (shop menu, language menu, user menu) מ-`right-0` ל-`end-0`
 
 ### 🔄 Docker Rebuilds על השרת
-- `docker compose -p etsyauto up -d --build web` — x3 פעמים
+- `docker compose -p etsyauto up -d --build web` — x3
 - `docker compose -p etsyauto up -d --build api` — x1
-
-### 📝 מיזוג CLAUDE.md (סוף יום)
-- מוזגו שני קבצי CLAUDE.md לאחד:
-  - **חלק 1** (חדש מ-`D:\הורדות\CLAUDE.md`): הוראות כלליות — מחשבים, טריגרים, סגנון, כללי התנהגות אנושית לאוטומציות, פרוטוקול סגירת יום
-  - **חלק 2** (קיים): תיעוד מלא של הפרויקט — טכנולוגיות, מבנה, מה נעשה, מאיפה להמשיך
-- הקובץ עלה ל-GitHub בהצלחה: commit `17d5fa0`
 
 ## 📁 קבצים שהשתנו:
 
@@ -36,40 +57,41 @@
 
 ### בקוד המקומי + שרת
 - `apps/web/components/layout/NotificationPanel.tsx` — תיקוני RTL
-- `apps/web/components/layout/TopBar.tsx` — תיקוני RTL בכל dropdown menus
-- `CLAUDE.md` — מוזג: הוראות כלליות + תיעוד מלא של הפרויקט
+- `apps/web/components/layout/TopBar.tsx` — תיקוני RTL בכל 3 dropdown menus
 
-## 🔄 מאיפה ממשיכים (צ'אט הבא):
+### שינויים מסשן קודם (שהועלו היום)
+- `apps/api/app/core/rbac.py` — supplier role ללא READ_PRODUCT/CREATE_PRODUCT
+- `apps/web/app/settings/page.tsx` — supplier במקום member בטופס הזמנה לצוות
+- `apps/web/components/layout/Sidebar.tsx` — supplier רואה הזמנות בלבד
 
-**הצעד הראשון**: היכנס ל-`https://yaroncohen.cc/settings` וחבר מחדש את שתי החנויות (FigurineeHaven + CoreBags) דרך Etsy OAuth.
-
-**אחרי חיבור החנויות**: הפעל sync כדי לטעון מוצרים + הזמנות מ-Etsy לדאטהבייס החדש בשרת.
-
-**CLAUDE.md מוזג** — הצ'אט הבא יקרא גם הוראות כלליות וגם תיעוד מלא מאותו קובץ אחד.
-
-## 🔗 תשתית:
+## 🔗 תשתית נוכחית:
 
 | רכיב | כתובת |
 |------|--------|
 | אתר ראשי | https://yaroncohen.cc |
 | API | http://185.241.4.225:8080 |
 | IP שרת | 185.241.4.225 |
-| SSH | root@185.241.4.225 (סיסמה: aA@05466734890) |
+| SSH | `ssh root@185.241.4.225` סיסמה: `aA@05466734890` |
 | SSL | תקף עד 27/06/2026, מתחדש אוטומטית |
+| nginx config | `/etc/nginx/sites-available/profitly` |
+| קבצי פרויקט | `/opt/profitly/` |
+| Docker | `docker compose -p etsyauto` |
 
 ## ⏳ מה נשאר לעשות:
 
-- [ ] **חנויות** — לחבר מחדש FigurineeHaven ו-CoreBags דרך `https://yaroncohen.cc/settings`
-- [ ] **Google OAuth** — לבדוק שעובד אחרי השינויים (לפעמים לוקח 5 דקות להיות פעיל)
-- [ ] **הרשמה** — ליצור חשבון ראשי דרך `/register` אם עדיין לא נעשה
-- [ ] **SSL ל-www** — להוסיף `www.yaroncohen.cc` לאחר שה-DNS יתפשט
-- [ ] **מיגרציה של DB** — להעביר נתונים מהדאטהבייס המקומי לשרת (הזמנות, מוצרים)
-- [ ] **בדיקת www redirect** — להגדיר nginx לעשות redirect מ-www ל-apex domain
+### דחוף
+- [ ] **חיבור חנויות** — היכנס ל-`https://yaroncohen.cc/settings` → לחץ "חבר חנות חדשה" → חבר FigurineeHaven + CoreBags דרך Etsy OAuth
+- [ ] **בדיקת Google OAuth** — לבדוק שכניסה עם Google עובדת (לפעמים לוקח 5 דקות אחרי שמירה ב-Google Console)
 
-## 📝 הערות חשובות:
+### פחות דחוף
+- [ ] **SSL ל-www** — אחרי שה-DNS מתפשט: `certbot --nginx -d yaroncohen.cc -d www.yaroncohen.cc`
+- [ ] **www redirect** — הגדרת nginx לעשות redirect מ-www ל-apex
+- [ ] **מיגרציה DB** — להעביר נתונים מהדאטהבייס המקומי לשרת (אם רוצים)
 
-- הדאטהבייס בשרת הוא **חדש וריק** — כל הנתונים (חנויות, הזמנות, מוצרים) צריכים לסנכרן מ-Etsy מחדש
-- סיסמת השרת: `aA@05466734890` — נשמרה ב-CloudWM
-- Private Key של Kamatera שמור במייל (נשלח ל-a0583226155@gmail.com)
-- nginx config נמצא ב: `/etc/nginx/sites-available/profitly`
-- כל קבצי הפרויקט בשרת נמצאים ב: `/opt/profitly/`
+## 📝 הערות חשובות לצ'אט הבא:
+
+1. **הדאטהבייס בשרת ריק** — כל הנתונים (הזמנות, מוצרים, ביקורות) צריכים לסנכרן מ-Etsy מחדש אחרי חיבור החנויות
+2. **סיסמת השרת**: `aA@05466734890` — עובדת ב-SSH רגיל, לא עבדה ב-Remote Console בגלל `@`
+3. **Private Key של Kamatera** — שמור במייל a0583226155@gmail.com (נושא: "etsy12345 private key restoration")
+4. **FRONTEND_URL** הוא המשתנה שקובע את URL בכפתור "חבר חנות חדשה" — חשוב!
+5. **כפתור "חבר חנות חדשה"** מעתיק לclipboard — לפתוח בדפדפן אחר (לא מנוהל) לביצוע ה-OAuth
