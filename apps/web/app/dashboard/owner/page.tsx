@@ -151,7 +151,7 @@ function OwnerDashboardContent() {
   // Format currency: always use ₪ symbol, support negative values
   const formatCurrency = (amount: number) => {
     const abs = Math.abs(amount);
-    const formatted = abs.toLocaleString('he-IL', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const formatted = abs.toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return amount < 0 ? `-₪${formatted}` : `₪${formatted}`;
   };
 
