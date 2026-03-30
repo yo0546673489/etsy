@@ -265,9 +265,9 @@ function entryTypeBadgeClasses(t: string): string {
 /*  Period selector                                                    */
 /* ================================================================== */
 
-type Period = '1m' | '3m' | '6m' | '12m';
+type Period = '1m' | '3m' | '6m' | '12m' | 'ytd' | 'lastyear' | 'custom';
 
-const PERIOD_OPTIONS: Period[] = ['1m', '3m', '6m', '12m'];
+const PERIOD_OPTIONS: Period[] = ['1m', '3m', '6m', '12m', 'ytd', 'lastyear', 'custom'];
 const PERIOD_STORAGE_KEY = 'financials-period';
 
 function loadPersistedPeriod(): Period {
@@ -290,42 +290,59 @@ function persistPeriod(p: Period): void {
   }
 }
 
-/** Calculate calendar-month boundaries exactly like Etsy:
- *  - 1m  = current month (1st of this month → now)
- *  - 3m+ = last N completed months (1st of N months ago → end of last month)
- */
-function periodToDates(p: Period): { start: string; end: string } {
+/** Calculate calendar-month boundaries exactly like Etsy */
+function periodToDates(p: Period, customStart?: string, customEnd?: string): { start: string; end: string } {
   const now = new Date();
-  if (p === '1m') {
-    // Current month: March 1 → now
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    return { start: start.toISOString(), end: now.toISOString() };
+  if (p === 'custom') {
+    return {
+      start: customStart ? new Date(customStart).toISOString() : new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+      end: customEnd ? new Date(customEnd + 'T23:59:59').toISOString() : now.toISOString(),
+    };
   }
-  const monthsBack: Record<Period, number> = { '1m': 1, '3m': 3, '6m': 6, '12m': 12 };
-  const months = monthsBack[p];
-  // Start = first day of month N months ago
+  if (p === 'ytd') {
+    return {
+      start: new Date(now.getFullYear(), 0, 1).toISOString(),
+      end: now.toISOString(),
+    };
+  }
+  if (p === 'lastyear') {
+    const y = now.getFullYear() - 1;
+    return {
+      start: new Date(y, 0, 1).toISOString(),
+      end: new Date(y, 11, 31, 23, 59, 59, 999).toISOString(),
+    };
+  }
+  if (p === '1m') {
+    return { start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), end: now.toISOString() };
+  }
+  const monthsBack: Record<string, number> = { '3m': 3, '6m': 6, '12m': 12 };
+  const months = monthsBack[p] ?? 3;
   const start = new Date(now.getFullYear(), now.getMonth() - months, 1);
-  // End = last moment of last completed month
   const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
 /** Human-readable period label matching Etsy exactly */
-function periodToLabel(p: Period, t?: (k: string) => string): string {
-  if (t) return t(`financials.period.${p}`) || p;
+function periodToLabel(p: Period, customStart?: string, customEnd?: string): string {
+  if (p === 'custom' && customStart && customEnd) {
+    const fmt = (d: string) => new Date(d).toLocaleDateString('he-IL', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `${fmt(customStart)} – ${fmt(customEnd)}`;
+  }
   const labels: Record<Period, string> = {
-    '1m': 'This month',
-    '3m': 'Last 3 months',
-    '6m': 'Last 6 months',
-    '12m': 'Last 12 months',
+    '1m':       'החודש הזה',
+    '3m':       '3 חודשים אחרונים',
+    '6m':       '6 חודשים אחרונים',
+    '12m':      '12 החודשים האחרונים',
+    'ytd':      'כל השנה הזו',
+    'lastyear': 'כל השנה שעברה',
+    'custom':   'מותאם אישית',
   };
-  return labels[p];
+  return labels[p] ?? p;
 }
 
 function periodToGranularity(p: Period): string {
   if (p === '1m') return 'daily';
-  if (p === '3m') return 'weekly';
-  if (p === '6m') return 'weekly';
+  if (p === '3m' || p === '6m') return 'weekly';
   return 'monthly';
 }
 
@@ -990,6 +1007,9 @@ export default function FinancialsPage() {
   const { currency: displayCurrency } = useCurrency();
 
   const [period, setPeriod] = useState<Period>(() => loadPersistedPeriod());
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [customDraft, setCustomDraft] = useState({ start: '', end: '' });
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [refreshingConnection, setRefreshingConnection] = useState(false);
@@ -1019,7 +1039,7 @@ export default function FinancialsPage() {
 
   const shopIds = selectedShopIds && selectedShopIds.length > 0 ? selectedShopIds : undefined;
   const shopId = !shopIds ? selectedShop?.id : undefined;
-  const { start, end } = useMemo(() => periodToDates(period), [period]);
+  const { start, end } = useMemo(() => periodToDates(period, customStart, customEnd), [period, customStart, customEnd]);
 
   /** Translate entry type using the translation function */
   const translateEntryType = (type: string): string => {
@@ -1280,45 +1300,73 @@ export default function FinancialsPage() {
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-slate-300 dark:hover:border-slate-500 transition-colors min-w-[280px] shadow-sm"
               >
                 <Calendar className="w-4 h-4 flex-shrink-0 text-slate-500 dark:text-slate-400" />
-                <span className="text-sm font-medium flex-1 text-left truncate">
-                  {periodToLabel(period, t)}
+                <span className="text-sm font-medium flex-1 text-start truncate">
+                  {periodToLabel(period, customStart, customEnd)}
                 </span>
                 <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${showPeriodMenu ? 'rotate-180' : ''}`} />
               </button>
 
               {showPeriodMenu && (
                 <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowPeriodMenu(false)}
-                  />
-                  <div className="absolute left-0 mt-2 w-72 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="fixed inset-0 z-40" onClick={() => setShowPeriodMenu(false)} />
+                  <div className="absolute end-0 mt-2 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-xl z-50 overflow-hidden">
                     <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                        {t('financials.dateRange') || 'Date range'}
-                      </p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">טווח תאריכים</p>
                     </div>
                     <div className="py-1">
-                      {PERIOD_OPTIONS.map((p) => (
-                <button
-                  key={p}
-                          onClick={() => {
-                            setPeriod(p);
-                            persistPeriod(p);
-                            setShowPeriodMenu(false);
-                          }}
-                          className={`w-full flex items-center px-4 py-2.5 text-left transition-colors ${
-                    period === p
+                      {PERIOD_OPTIONS.filter(p => p !== 'custom').map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => { setPeriod(p); persistPeriod(p); setShowPeriodMenu(false); }}
+                          className={`w-full flex items-center px-4 py-2.5 text-right transition-colors ${
+                            period === p
                               ? 'bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200'
                               : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
                           }`}
                         >
-                          <span className="text-sm">{periodToLabel(p, t)}</span>
-                          {period === p && (
-                            <CheckCircle strokeWidth={1.5} className="ml-auto w-4 h-4 flex-shrink-0 text-slate-900 dark:text-slate-100" />
-                          )}
-                </button>
-              ))}
+                          <span className="text-sm">{periodToLabel(p)}</span>
+                          {period === p && <CheckCircle strokeWidth={1.5} className="ms-auto w-4 h-4 flex-shrink-0 text-slate-900 dark:text-slate-100" />}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Custom date range */}
+                    <div className="border-t border-slate-100 dark:border-slate-700 px-4 py-3">
+                      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">מותאם אישית</p>
+                      <div className="flex gap-2 mb-2">
+                        <div className="flex-1">
+                          <label className="text-xs text-slate-500 mb-1 block">מתאריך</label>
+                          <input
+                            type="date"
+                            value={customDraft.start}
+                            onChange={e => setCustomDraft(d => ({ ...d, start: e.target.value }))}
+                            className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-xs text-slate-500 mb-1 block">עד תאריך</label>
+                          <input
+                            type="date"
+                            value={customDraft.end}
+                            min={customDraft.start}
+                            onChange={e => setCustomDraft(d => ({ ...d, end: e.target.value }))}
+                            className="w-full text-sm border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        disabled={!customDraft.start || !customDraft.end}
+                        onClick={() => {
+                          setCustomStart(customDraft.start);
+                          setCustomEnd(customDraft.end);
+                          setPeriod('custom');
+                          persistPeriod('custom');
+                          setShowPeriodMenu(false);
+                        }}
+                        className="w-full py-1.5 rounded-lg text-sm font-medium bg-[#006d43] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#005a37] transition-colors"
+                      >
+                        החל
+                      </button>
                     </div>
                   </div>
                 </>
@@ -1498,7 +1546,7 @@ export default function FinancialsPage() {
           drawer={activeDrawer}
           payout={payout}
           summary={summary}
-          period={periodToLabel(period, t)}
+          period={periodToLabel(period, customStart, customEnd)}
           onClose={() => setActiveDrawer(null)}
         />
 
