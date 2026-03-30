@@ -79,11 +79,11 @@ function ShipmentSourceBadge({ source, recordedBy, recordedByRole }: { source?: 
         isEtsy ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600',
       )}>
         {isEtsy ? <Globe className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-        {isEtsy ? 'Synced to Etsy' : 'Manual'}
+        {isEtsy ? 'סונכרן עם Etsy' : 'ידני'}
       </span>
       {recordedBy && (
         <span className="text-xs text-[var(--text-muted)]">
-          by {recordedBy}{recordedByRole ? ` (${recordedByRole})` : ''}
+          על ידי {recordedBy}{recordedByRole ? ` (${recordedByRole})` : ''}
         </span>
       )}
     </div>
@@ -142,7 +142,7 @@ function OrderDetailContent() {
       setOrder(data);
     } catch (error: any) {
       console.error('Failed to load order:', error);
-      showToast(error.detail || 'Failed to load order', 'error');
+      showToast(error.detail || 'טעינת ההזמנה נכשלה', 'error');
       router.push('/orders');
     } finally {
       setLoading(false);
@@ -168,12 +168,12 @@ function OrderDetailContent() {
   const handleSyncOrder = async () => {
     try {
       setSyncing(true);
-      showToast('Syncing order from Etsy...', 'info');
+      showToast('מסנכרן הזמנה מ-Etsy...', 'info');
       await ordersApi.sync({ shopId: selectedShopId });
-      showToast('Order synced successfully!', 'success');
+      showToast('ההזמנה סונכרנה בהצלחה!', 'success');
       await loadOrder();
     } catch (error: any) {
-      showToast(error.detail || 'Failed to sync order', 'error');
+      showToast(error.detail || 'סנכרון ההזמנה נכשל', 'error');
     } finally {
       setSyncing(false);
     }
@@ -189,20 +189,20 @@ function OrderDetailContent() {
     let hasError = false;
 
     if (!trackingCode.trim()) {
-      setTrackingError('Tracking code is required');
+      setTrackingError('נדרש מספר מעקב');
       trackingInputRef.current?.focus();
       hasError = true;
     }
     if (!carrierName) {
-      setCarrierError('Please select a carrier');
+      setCarrierError('יש לבחור חברת שליחויות');
       hasError = true;
     }
 
     if (hasError) {
       const missing = [];
-      if (!trackingCode.trim()) missing.push('tracking code');
-      if (!carrierName) missing.push('carrier');
-      showToast(`Please fill in required fields: ${missing.join(', ')}`, 'error');
+      if (!trackingCode.trim()) missing.push('מספר מעקב');
+      if (!carrierName) missing.push('חברת שליחויות');
+      showToast(`יש למלא שדות חובה: ${missing.join(', ')}`, 'error');
       return;
     }
 
@@ -218,14 +218,14 @@ function OrderDetailContent() {
       let result: any = null;
       if (manualOnly) {
         result = await ordersApi.recordTracking(order.id, payload);
-        message = 'Tracking recorded (manual only — not synced to Etsy)';
+        message = 'מעקב נשמר (ידני בלבד — לא סונכרן עם Etsy)';
         showToast(message, 'success');
       } else {
         result = await ordersApi.fulfill(order.id, { ...payload, send_bcc: sendBcc });
         if (result && result.status === 'already_synced') {
-          message = 'Tracking already recorded on Etsy';
+          message = 'מעקב כבר קיים ב-Etsy';
         } else {
-          message = 'Tracking submitted and synced to Etsy successfully!';
+          message = 'מעקב נשלח וסונכרן עם Etsy בהצלחה!';
         }
         showToast(message, 'success');
       }
@@ -236,7 +236,7 @@ function OrderDetailContent() {
       setFulfillResult({ type: 'success', message });
       setTimeout(() => setFulfillResult(null), 5000);
     } catch (error: any) {
-      const message = error.detail || 'Failed to submit tracking';
+      const message = error.detail || 'שליחת המעקב נכשלה';
       showToast(message, 'error');
       setFulfillResult({ type: 'error', message });
       setTimeout(() => setFulfillResult(null), 5000);
@@ -250,10 +250,10 @@ function OrderDetailContent() {
     try {
       setAssigningSupplier(true);
       await ordersApi.assignSupplier(order.id, selectedSupplierId);
-      showToast('Supplier assigned to order', 'success');
+      showToast('הספק שויך להזמנה', 'success');
       await loadOrder();
     } catch (error: any) {
-      showToast(error.detail || 'Failed to assign supplier', 'error');
+      showToast(error.detail || 'שיוך הספק נכשל', 'error');
     } finally {
       setAssigningSupplier(false);
     }
@@ -279,7 +279,7 @@ function OrderDetailContent() {
     return (
       <div className="max-w-[1400px] mx-auto space-y-6">
         <div className="flex flex-col items-center justify-center py-20">
-          <p className="text-[var(--text-muted)] text-lg">Order not found</p>
+          <p className="text-[var(--text-muted)] text-lg">ההזמנה לא נמצאה</p>
         </div>
       </div>
     );
@@ -291,12 +291,12 @@ function OrderDetailContent() {
     ? order.shipments.some((s: any) => s.source === 'etsy_sync')
       ? (
         <span className="px-2 py-0.5 text-xs rounded-full bg-green-50 text-green-700">
-          Synced to Etsy
+          סונכרן עם Etsy
         </span>
         )
       : (
         <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">
-          Manual only — not synced
+          ידני בלבד — לא סונכרן
         </span>
         )
     : null;
@@ -310,7 +310,7 @@ function OrderDetailContent() {
           className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
-          <span>Back to Orders</span>
+          <span>חזרה להזמנות</span>
         </button>
 
         {canAssign && (
@@ -320,7 +320,7 @@ function OrderDetailContent() {
             className="flex items-center gap-2 px-4 py-2 border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--background)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCcw className={cn('w-4 h-4', syncing && 'animate-spin')} />
-            <span>{syncing ? 'Syncing...' : 'Sync Order'}</span>
+            <span>{syncing ? 'מסנכרן...' : 'סנכרן הזמנה'}</span>
           </button>
         )}
       </div>
@@ -330,16 +330,16 @@ function OrderDetailContent() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold text-[var(--text-primary)]">
-              Order {order.order_id}
+              הזמנה {order.order_id}
             </h1>
             <div className="flex items-center gap-4 mt-2 text-sm text-[var(--text-muted)]">
               <span className="flex items-center gap-1">
                 <Package className="w-4 h-4" />
-                ID: {order.id}
+                מזהה: {order.id}
               </span>
               {order.etsy_receipt_id && (
                 <span className="flex items-center gap-1">
-                  Etsy Receipt: {order.etsy_receipt_id}
+                  קבלת Etsy: {order.etsy_receipt_id}
                 </span>
               )}
               <span className="flex items-center gap-1">
@@ -349,7 +349,7 @@ function OrderDetailContent() {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm text-[var(--text-muted)] mb-1">Total Amount</p>
+            <p className="text-sm text-[var(--text-muted)] mb-1">סכום כולל</p>
             <p className="text-3xl font-bold text-[var(--text-primary)]">
               {order.total_price === null ? '--' : `${order.currency} ${order.total_price.toFixed(2)}`}
             </p>
@@ -358,18 +358,18 @@ function OrderDetailContent() {
 
         <div className="flex flex-wrap items-center gap-4 mt-6">
           <div>
-            <p className="text-xs text-[var(--text-muted)] mb-1">Order Status</p>
+            <p className="text-xs text-[var(--text-muted)] mb-1">סטטוס הזמנה</p>
             <OrderStatus status={order.lifecycle_status || order.status} />
           </div>
           <div>
-            <p className="text-xs text-[var(--text-muted)] mb-1">Payment Status</p>
+            <p className="text-xs text-[var(--text-muted)] mb-1">סטטוס תשלום</p>
             <PaymentStatus status={order.payment_status} />
           </div>
 
           {/* Assigned Supplier */}
           {orderDetail.supplier_name ? (
             <div>
-              <p className="text-xs text-[var(--text-muted)] mb-1">Assigned Supplier</p>
+              <p className="text-xs text-[var(--text-muted)] mb-1">ספק משויך</p>
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-violet-50 text-violet-700">
                 <Truck className="w-3.5 h-3.5" />
                 {orderDetail.supplier_name}
@@ -377,17 +377,17 @@ function OrderDetailContent() {
             </div>
           ) : order.supplier_user_id ? (
             <div>
-              <p className="text-xs text-[var(--text-muted)] mb-1">Assigned Supplier</p>
+              <p className="text-xs text-[var(--text-muted)] mb-1">ספק משויך</p>
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
                 <User className="w-3.5 h-3.5" />
-                Supplier #{order.supplier_user_id}
+                ספק #{order.supplier_user_id}
               </span>
             </div>
           ) : canAssign ? (
             <div>
-              <p className="text-xs text-[var(--text-muted)] mb-1">Supplier</p>
+              <p className="text-xs text-[var(--text-muted)] mb-1">ספק</p>
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-500">
-                Unassigned
+                לא משויך
               </span>
             </div>
           ) : null}
@@ -398,10 +398,10 @@ function OrderDetailContent() {
       {canFulfill && (
         <DashboardCard>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">Tracking & Fulfillment</h2>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">מעקב ומשלוח</h2>
             <div className="flex items-center gap-3">
               <span className="text-sm text-[var(--text-muted)]">
-                Status: {order.fulfillment_status || 'unshipped'}
+                סטטוס: {order.fulfillment_status === 'shipped' ? 'נשלח' : order.fulfillment_status === 'unshipped' ? 'טרם נשלח' : (order.fulfillment_status || 'טרם נשלח')}
               </span>
               {syncStatus}
             </div>
@@ -410,27 +410,21 @@ function OrderDetailContent() {
           {/* Display existing shipments with source badges */}
           {order.shipments && order.shipments.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-sm font-medium text-[var(--text-primary)] mb-3">Existing Shipments</h3>
+              <h3 className="text-sm font-medium text-[var(--text-primary)] mb-3">משלוחים קיימים</h3>
               <div className="space-y-3">
                 {order.shipments.map((shipment: any, index: number) => (
                   <div key={index} className="p-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xs text-[var(--text-muted)]">Tracking Number</p>
+                        <p className="text-xs text-[var(--text-muted)]">מספר מעקב</p>
                         <p className="text-sm font-medium text-[var(--text-primary)] font-mono">
                           {shipment.tracking_code}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-[var(--text-muted)]">Carrier</p>
+                        <p className="text-xs text-[var(--text-muted)]">חברת שליחויות</p>
                         <p className="text-sm text-[var(--text-primary)]">
-                          {shipment.carrier_name || 'N/A'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-[var(--text-muted)]">Ship Date</p>
-                        <p className="text-sm text-[var(--text-primary)]">
-                          {shipment.shipping_date || shipment.ship_date || 'N/A'}
+                          {shipment.carrier_name || '—'}
                         </p>
                       </div>
                     </div>
@@ -442,7 +436,7 @@ function OrderDetailContent() {
                           rel="noopener noreferrer"
                           className="text-sm text-[var(--primary)] hover:underline inline-flex items-center gap-1"
                         >
-                          Track Package
+                          עקוב אחר החבילה
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                           </svg>
@@ -453,7 +447,7 @@ function OrderDetailContent() {
                       <div className="mt-2">
                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full">
                           <CheckCircle className="w-3 h-3" />
-                          Delivered
+                          נמסר
                         </span>
                       </div>
                     )}
@@ -466,7 +460,7 @@ function OrderDetailContent() {
                 ))}
               </div>
               <div className="mt-4 border-t border-[var(--border-color)] pt-4">
-                <h3 className="text-sm font-medium text-[var(--text-primary)] mb-2">Add Additional Tracking</h3>
+                <h3 className="text-sm font-medium text-[var(--text-primary)] mb-2">הוספת מעקב נוסף</h3>
               </div>
             </div>
           )}
@@ -475,7 +469,7 @@ function OrderDetailContent() {
           {canAssign && suppliers.length > 0 && (
             <div className="mb-4 flex flex-col md:flex-row gap-3 items-start md:items-end">
               <div className="flex-1 relative">
-                <label className="block text-sm text-[var(--text-muted)] mb-2">Assign Supplier</label>
+                <label className="block text-sm text-[var(--text-muted)] mb-2">שיוך ספק</label>
                 <button
                   type="button"
                   onClick={() => setSupplierDropdownOpen(!supplierDropdownOpen)}
@@ -488,9 +482,9 @@ function OrderDetailContent() {
                     {selectedSupplierId
                       ? (() => {
                           const s = suppliers.find(s => s.user_id === selectedSupplierId);
-                          return s ? `${s.name} (${s.email})` : 'Select supplier';
+                          return s ? `${s.name} (${s.email})` : 'בחר ספק';
                         })()
-                      : 'Select supplier'}
+                      : 'בחר ספק'}
                   </span>
                   <ChevronDown className={cn('w-4 h-4 transition-transform', supplierDropdownOpen && 'rotate-180')} />
                 </button>
@@ -527,7 +521,7 @@ function OrderDetailContent() {
                 disabled={!selectedSupplierId || assigningSupplier}
                 className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50"
               >
-                {assigningSupplier ? 'Assigning...' : 'Assign Supplier'}
+                {assigningSupplier ? 'משייך...' : 'שייך ספק'}
               </button>
             </div>
           )}
@@ -536,7 +530,7 @@ function OrderDetailContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-[var(--text-muted)] mb-2">
-                Tracking Code <span className="text-red-500">*</span>
+                מספר מעקב <span className="text-red-500">*</span>
               </label>
               <input
                 ref={trackingInputRef}
@@ -546,7 +540,7 @@ function OrderDetailContent() {
                   'w-full px-3 py-2 bg-[var(--background)] border rounded-lg text-[var(--text-primary)] transition-colors',
                   trackingError ? 'border-red-500 ring-1 ring-red-500' : 'border-[var(--border-color)]'
                 )}
-                placeholder="Enter tracking number"
+                placeholder="הכנס מספר מעקב"
                 required
               />
               {trackingError && (
@@ -555,7 +549,7 @@ function OrderDetailContent() {
             </div>
             <div className="relative">
               <label className="block text-sm text-[var(--text-muted)] mb-2">
-                Carrier <span className="text-red-500">*</span>
+                חברת שליחויות <span className="text-red-500">*</span>
               </label>
               <button
                 type="button"
@@ -566,7 +560,7 @@ function OrderDetailContent() {
                   carrierName ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'
                 )}
               >
-                <span>{carrierName ? CARRIER_OPTIONS.find(c => c.value === carrierName)?.label || carrierName : 'Select a carrier'}</span>
+                <span>{carrierName ? CARRIER_OPTIONS.find(c => c.value === carrierName)?.label || carrierName : 'בחר חברת שליחויות'}</span>
                 <ChevronDown className={cn('w-4 h-4 transition-transform', carrierDropdownOpen && 'rotate-180')} />
               </button>
               {carrierError && (
@@ -601,24 +595,6 @@ function OrderDetailContent() {
                 </>
               )}
             </div>
-            <div>
-              <label className="block text-sm text-[var(--text-muted)] mb-2">Shipment Date</label>
-              <input
-                type="date"
-                value={shipDate}
-                onChange={(e) => setShipDate(e.target.value)}
-                className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)]"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-[var(--text-muted)] mb-2">Note</label>
-              <input
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)]"
-                placeholder="Optional note to buyer"
-              />
-            </div>
           </div>
 
           {/* Options row */}
@@ -631,11 +607,11 @@ function OrderDetailContent() {
                 onChange={(e) => setManualOnly(e.target.checked)}
                 className="w-4 h-4 rounded border-[var(--border-color)] text-[var(--primary)] focus:ring-[var(--primary)]"
               />
-              <span>Record manually (do not sync to Etsy)</span>
+              <span>שמור ידנית (ללא סנכרון עם Etsy)</span>
             </label>
             {manualOnly && (
               <p className="text-xs text-amber-600 ml-6">
-                Tracking will be saved locally only. It will not appear on the Etsy order.
+                המעקב יישמר מקומית בלבד. הוא לא יופיע בהזמנה ב-Etsy.
               </p>
             )}
 
@@ -648,7 +624,7 @@ function OrderDetailContent() {
                   onChange={(e) => setSendBcc(e.target.checked)}
                   className="w-4 h-4 rounded border-[var(--border-color)] text-[var(--primary)] focus:ring-[var(--primary)]"
                 />
-                <span>Send tracking notification to buyer (BCC to shop owner)</span>
+                <span>שלח עדכון מעקב לקונה (העתק לבעל החנות)</span>
               </label>
             )}
           </div>
@@ -677,10 +653,10 @@ function OrderDetailContent() {
               )}
             >
               {fulfilling
-                ? 'Submitting...'
+                ? 'שולח...'
                 : manualOnly
-                  ? 'Save Manual Tracking'
-                  : 'Submit & Sync to Etsy'}
+                  ? 'שמור מעקב ידני'
+                  : 'שלח וסנכרן עם Etsy'}
             </button>
           </div>
         </DashboardCard>
@@ -689,7 +665,7 @@ function OrderDetailContent() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Customer & Shipping */}
         <div className="lg:col-span-1 space-y-6">
-          <DashboardCard title="Customer Information">
+          <DashboardCard title="פרטי לקוח">
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-[var(--primary-bg)] text-[var(--primary)] flex items-center justify-center text-sm font-medium">
@@ -703,7 +679,7 @@ function OrderDetailContent() {
             </div>
           </DashboardCard>
 
-          <DashboardCard title="Shipping Address">
+          <DashboardCard title="כתובת משלוח">
             {order.shipping_address ? (
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-[var(--text-muted)] mt-1 flex-shrink-0" />
@@ -724,25 +700,25 @@ function OrderDetailContent() {
                 </div>
               </div>
             ) : (
-              <p className="text-[var(--text-muted)] italic text-sm">No shipping address available</p>
+              <p className="text-[var(--text-muted)] italic text-sm">אין כתובת משלוח</p>
             )}
           </DashboardCard>
 
-          <DashboardCard title="Timestamps">
+          <DashboardCard title="תאריכים">
             <div className="space-y-3 text-sm">
               <div>
-                <p className="text-xs text-[var(--text-muted)] mb-1">Created At</p>
+                <p className="text-xs text-[var(--text-muted)] mb-1">נוצר בתאריך</p>
                 <p className="text-[var(--text-primary)]">{formatDate(order.created_at)}</p>
               </div>
               {order.updated_at && (
                 <div>
-                  <p className="text-xs text-[var(--text-muted)] mb-1">Updated At</p>
+                  <p className="text-xs text-[var(--text-muted)] mb-1">עודכן בתאריך</p>
                   <p className="text-[var(--text-primary)]">{formatDate(order.updated_at)}</p>
                 </div>
               )}
               {order.synced_at && (
                 <div>
-                  <p className="text-xs text-[var(--text-muted)] mb-1">Last Synced</p>
+                  <p className="text-xs text-[var(--text-muted)] mb-1">סונכרן לאחרונה</p>
                   <p className="text-[var(--text-primary)]">{formatDate(order.synced_at)}</p>
                 </div>
               )}
@@ -752,7 +728,7 @@ function OrderDetailContent() {
 
         {/* Right Column - Order Items */}
         <div className="lg:col-span-2">
-          <DashboardCard title="Order Items">
+          <DashboardCard title="פריטי הזמנה">
             {order.items && order.items.length > 0 ? (
               <div className="space-y-4">
                 {order.items.map((item: any, index: number) => (
@@ -774,9 +750,9 @@ function OrderDetailContent() {
                       <h3 className="font-medium text-[var(--text-primary)] mb-1">
                         {item.title || item.product_name || `Item ${index + 1}`}
                       </h3>
-                      {item.sku && <p className="text-sm text-[var(--text-muted)] mb-2">SKU: {item.sku}</p>}
+                      {item.sku && <p className="text-sm text-[var(--text-muted)] mb-2">מק"ט: {item.sku}</p>}
                       <div className="flex items-center gap-4 text-sm">
-                        {item.quantity && <span className="text-[var(--text-muted)]">Qty: {item.quantity}</span>}
+                        {item.quantity && <span className="text-[var(--text-muted)]">כמות: {item.quantity}</span>}
                         {item.price && (
                           <span className="font-medium text-[var(--text-primary)]">
                             {order.currency} {(parseFloat(item.price) / 100).toFixed(2)}
@@ -786,7 +762,7 @@ function OrderDetailContent() {
                     </div>
                     {item.price && item.quantity && (
                       <div className="text-right">
-                        <p className="text-sm text-[var(--text-muted)] mb-1">Subtotal</p>
+                        <p className="text-sm text-[var(--text-muted)] mb-1">סכום ביניים</p>
                         <p className="font-medium text-[var(--text-primary)]">
                           {order.currency} {(parseFloat(item.price) / 100 * item.quantity).toFixed(2)}
                         </p>
@@ -796,7 +772,7 @@ function OrderDetailContent() {
                 ))}
                 <div className="border-t border-[var(--border-color)] pt-4 mt-4">
                   <div className="flex items-center justify-between text-lg font-bold">
-                    <span className="text-[var(--text-primary)]">Total</span>
+                    <span className="text-[var(--text-primary)]">סה"כ</span>
                     <span className="text-[var(--text-primary)]">
                       {order.total_price != null ? `${order.currency} ${order.total_price.toFixed(2)}` : '--'}
                     </span>
@@ -806,8 +782,8 @@ function OrderDetailContent() {
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)]">
                 <Package className="w-12 h-12 mb-2 opacity-50" />
-                <p>No order items available</p>
-                <p className="text-sm mt-1">Items data may not have been synced yet</p>
+                <p>אין פריטים בהזמנה</p>
+                <p className="text-sm mt-1">ייתכן שהנתונים טרם סונכרנו</p>
               </div>
             )}
           </DashboardCard>
