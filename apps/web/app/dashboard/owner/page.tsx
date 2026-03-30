@@ -144,8 +144,9 @@ function OwnerDashboardContent() {
   const totalCustomers = stats.total_customers || 0;
   const totalViews     = stats.total_views || 0;
   const todayVisits    = stats.today_visits || 0;
-  // Show today's visits if available (from Etsy stats API), otherwise total listing views
-  const shopViews      = todayVisits > 0 ? todayVisits : totalViews;
+  // today_visits = from Etsy Stats API (often unavailable) → show totalViews only for multi-day ranges
+  const isToday        = dateRange.key === 'today' || dateRange.key === 'yesterday';
+  const shopViews      = todayVisits > 0 ? todayVisits : (isToday ? null : totalViews);
   const changes        = stats.changes || { products: 0, customers: 0, orders: 0, listings: 0 };
 
   // Format currency: always use ₪ symbol, support negative values
@@ -219,15 +220,15 @@ function OwnerDashboardContent() {
           label="לקוחות חדשים"
           value={totalCustomers}
         />
-        {/* 4th = LEFTMOST: צפיות בחנות (cumulative listing views from Etsy) */}
+        {/* 4th = LEFTMOST: צפיות בחנות */}
         <StatCard
-          badge="מצטבר"
+          badge={shopViews === null ? 'לא זמין' : 'מצטבר'}
           badgeColor="text-orange-400"
           icon={Eye}
           iconBg="bg-orange-50"
           iconColor="text-orange-400"
           label="צפיות בחנות"
-          value={formatCompact(shopViews)}
+          value={shopViews === null ? '—' : formatCompact(shopViews)}
         />
       </div>
 
