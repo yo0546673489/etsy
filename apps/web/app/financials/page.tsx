@@ -74,11 +74,12 @@ import {
 
 /** Convert cents to formatted dollar string */
 function formatCents(cents: number, currency = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
+  const formatted = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
-  }).format(cents / 100);
+  }).format(Math.abs(cents) / 100);
+  return cents < 0 ? `-${formatted}` : formatted;
 }
 
 /** Format amount, using converted value when available */
