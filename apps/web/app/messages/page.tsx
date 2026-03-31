@@ -51,6 +51,8 @@ export default function MessagesPage() {
   // Map selected main-app shops → messages-system store IDs by exact name match
   const selectedMsgStoreIds = useMemo<Set<number> | null>(() => {
     if (!msgStores.length || selectedShops.length === 0) return null;
+    // All shops selected → show everything (some may not have exact name match)
+    if (selectedShops.length >= shops.length) return null;
     const ids = new Set<number>();
     for (const shop of selectedShops) {
       const shopName = shop.display_name.toLowerCase().trim();
@@ -61,7 +63,7 @@ export default function MessagesPage() {
       }
     }
     return ids.size > 0 ? ids : null;
-  }, [selectedShops, msgStores]);
+  }, [selectedShops, shops, msgStores]);
 
   const loadConversations = useCallback(async () => {
     setConvLoading(true);
