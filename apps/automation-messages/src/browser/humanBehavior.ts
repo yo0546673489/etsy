@@ -36,21 +36,18 @@ export class HumanBehavior {
 
   async humanClick(selector: string): Promise<void> {
     await randomDelay(300, 800);
-    const element = await this.page.waitForSelector(selector, { timeout: 10000 });
-    if (!element) throw new Error(`Element not found: ${selector}`);
-    // Reset cursor if page navigated (execution context destroyed)
+    await this.page.waitForSelector(selector, { timeout: 10000 });
     try {
-      await this.cursor.move(selector);
+      await this.cursor.click(selector);
     } catch (e: unknown) {
-      if (e instanceof Error && e.message.includes('Execution context was destroyed')) {
+      if (e instanceof Error && (e.message.includes('Execution context was destroyed') || e.message.includes('is not a function'))) {
         this._cursor = null;
         await this.page.waitForLoadState('domcontentloaded').catch(() => {});
         await randomDelay(500, 1000);
-        await this.cursor.move(selector);
+        // Fallback: direct Playwright click
+        await this.page.click(selector);
       } else throw e;
     }
-    await randomDelay(100, 300);
-    await this.cursor.click(selector);
     await randomDelay(500, 1500);
     logger.debug(`Human click on: ${selector}`);
   }

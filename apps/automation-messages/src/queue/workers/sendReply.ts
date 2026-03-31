@@ -20,7 +20,7 @@ function getRedisConnection() {
 
 export function createReplyWorker(pool: Pool, jobQueue: JobQueue): Worker {
   const adspower = new AdsPowerController();
-  const syncEngine = new SyncEngine(pool);
+  const syncEngine = new SyncEngine(pool, jobQueue);
 
   return new Worker('send-reply', async (job: Job<SendReplyJobData>) => {
     const { replyQueueId, conversationId, storeId, profileId, conversationUrl, messageText } = job.data;

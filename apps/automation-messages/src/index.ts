@@ -11,6 +11,7 @@ import { createDiscountWorker } from './queue/workers/executeDiscount';
 import { createApiServer } from './api/server';
 import { DiscountRotationScheduler } from './scheduler/discountRotation';
 import { DiscountTaskExecutor } from './scheduler/discountTaskExecutor';
+import { OrderMessageScheduler } from './scheduler/orderMessageScheduler';
 import { logger } from './utils/logger';
 
 async function main() {
@@ -75,6 +76,13 @@ async function main() {
     discountTaskExecutor = new DiscountTaskExecutor(config.platformDb.url, jobQueue.discountQueue);
     discountTaskExecutor.start();
     logger.info('Discount task executor started (polling etsy_platform)');
+  }
+
+  // Scheduler — הודעות אוטומטיות לפי הזמנות
+  if (platformPool) {
+    const orderMsgScheduler = new OrderMessageScheduler(platformPool, pool, jobQueue);
+    orderMsgScheduler.start();
+    logger.info('Order message scheduler started');
   }
 
   if (config.imap.user && config.imap.password) {

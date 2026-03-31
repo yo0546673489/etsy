@@ -38,46 +38,49 @@ export class EtsySender {
       await this.page.waitForSelector(textareaSelector, { timeout: 10000 });
       await randomDelay(300, 800);
 
-      // Human click into textarea, then type
-      await this.human.humanClick(textareaSelector);
+      // Move mouse near textarea (human-like), then use reliable Playwright click to focus it
+      await this.human.randomMouseMovement();
+      await this.page.click(textareaSelector);
       await randomDelay(400, 900);
+
+      // Type character by character with human delays
       await this.human.humanTypeInFocus(messageText);
 
       // Simulate re-reading what was typed
       await this.human.readingDelay(messageText.length);
-      await randomDelay(500, 1500);
+      await randomDelay(1000, 2500);
 
-      // Find the send button: mark it with a temp attribute so humanClick can target it
-      const btnFound = await this.page.evaluate(() => {
-        const ta = document.querySelector('textarea[placeholder="Type your reply"]');
-        let el: Element | null = ta?.parentElement ?? null;
-        for (let i = 0; i < 6 && el; i++) {
-          // Avoid the search bar button; look for a button not in a input-btn-group
-          const btn = el.querySelector(
-            'button[type="button"]:not(.wt-input-btn-group__btn):not([disabled]),' +
-            'button[type="submit"]:not(.wt-input-btn-group__btn):not([disabled])'
-          ) as HTMLElement | null;
-          if (btn) {
-            btn.setAttribute('data-etsy-reply-send', 'true');
-            return true;
-          }
-          el = el.parentElement;
+      // Verify text was actually entered in the textarea
+      const typedText = await this.page.$eval(textareaSelector, (el: HTMLTextAreaElement) => el.value).catch(() => '');
+      if (!typedText.includes(messageText.substring(0, 10))) {
+        logger.warn('Text not found in textarea, clicking again and retyping...');
+        await this.page.click(textareaSelector);
+        await randomDelay(300, 600);
+        await this.page.fill(textareaSelector, messageText);
+        await randomDelay(500, 1000);
+      }
+
+      // Send via Tab to move focus to Send button, then Enter — most reliable method
+      // Also try clicking the Send button directly
+      const btnClicked = await this.page.evaluate(() => {
+        // Find the Send button (text "Send" or aria-label "Send")
+        const buttons = Array.from(document.querySelectorAll('button'));
+        const sendBtn = buttons.find(b =>
+          b.textContent?.trim() === 'Send' ||
+          b.getAttribute('aria-label')?.toLowerCase() === 'send'
+        ) as HTMLButtonElement | null;
+        if (sendBtn && !sendBtn.disabled) {
+          sendBtn.click();
+          return true;
         }
         return false;
       });
 
-      if (btnFound) {
-        // Human click through ghost cursor — Bezier curve mouse movement
-        await this.human.humanClick('[data-etsy-reply-send="true"]');
-        // Clean up the temporary attribute
-        await this.page.evaluate(() => {
-          document.querySelector('[data-etsy-reply-send="true"]')
-            ?.removeAttribute('data-etsy-reply-send');
-        });
+      if (btnClicked) {
+        logger.info('Send button clicked via DOM');
       } else {
-        // Fallback: Ctrl+Enter — add realistic delays around it
-        logger.warn('Send button not found via DOM walk, using keyboard shortcut');
-        await randomDelay(300, 700);
+        // Fallback: Ctrl+Enter
+        logger.warn('Send button not found, using Ctrl+Enter');
         await this.page.keyboard.down('Control');
         await randomDelay(50, 120);
         await this.page.keyboard.press('Return');

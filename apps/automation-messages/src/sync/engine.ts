@@ -2,12 +2,15 @@ import { Pool } from 'pg';
 import { ScrapedConversation, ScrapedMessage } from '../browser/etsyScraper';
 import { createHash } from 'crypto';
 import { logger } from '../utils/logger';
+import { JobQueue } from '../queue/setup';
 
 export class SyncEngine {
   private pool: Pool;
+  private jobQueue: JobQueue | null = null;
 
-  constructor(pool: Pool) {
+  constructor(pool: Pool, jobQueue?: JobQueue) {
     this.pool = pool;
+    this.jobQueue = jobQueue || null;
   }
 
   private hashMessage(msg: ScrapedMessage, conversationId?: number): string {
@@ -95,6 +98,35 @@ export class SyncEngine {
 
       await client.query('COMMIT');
       logger.info(`Synced conversation ${conversationId}: ${newMessages} new messages`);
+
+      // If new customer messages arrived AND ai_mode is ON → trigger auto-reply
+      if (newMessages > 0 && this.jobQueue) {
+        const lastMsg = scraped.messages[scraped.messages.length - 1];
+        if (lastMsg.senderType === 'customer') {
+          const convResult = await this.pool.query(
+            `SELECT c.ai_mode, c.etsy_conversation_url, s.adspower_profile_id
+             FROM conversations c JOIN stores s ON c.store_id = s.id WHERE c.id = $1`,
+            [conversationId]
+          );
+          const conv = convResult.rows[0];
+          if (conv?.ai_mode) {
+            logger.info(`[AutoReply] ai_mode ON for conversation ${conversationId} — triggering AI reply`);
+            const { AutoReplyService } = await import('../ai/autoReplyService');
+            const autoReply = new AutoReplyService(this.pool, this.jobQueue);
+            // Small delay so the message is already in DB
+            setTimeout(() => {
+              autoReply.handleNewCustomerMessage(
+                conversationId,
+                storeId,
+                scraped.customerName,
+                lastMsg.messageText,
+                conv.etsy_conversation_url,
+                conv.adspower_profile_id
+              );
+            }, 2000);
+          }
+        }
+      }
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;

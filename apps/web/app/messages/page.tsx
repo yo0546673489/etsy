@@ -12,7 +12,7 @@ import MsgConversationItem from '@/components/messages/MsgConversationItem';
 import MsgBubble from '@/components/messages/MsgBubble';
 import MsgDateSeparator from '@/components/messages/MsgDateSeparator';
 import MsgSkeleton from '@/components/messages/MsgSkeleton';
-import { MessageCircle, Search, Send, ChevronLeft, Smile, Paperclip, ChevronDown } from 'lucide-react';
+import { MessageCircle, Search, Send, ChevronLeft, Smile, ChevronDown, Bot, BotOff } from 'lucide-react';
 
 type PendingMsg = MsgMessage & { _pending?: boolean; _failed?: boolean };
 
@@ -36,6 +36,7 @@ export default function MessagesPage() {
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
   const [sendFailed, setSendFailed] = useState(false);
+  const [aiTogglingId, setAiTogglingId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [showMobileChat, setShowMobileChat] = useState(false);
@@ -128,6 +129,22 @@ export default function MessagesPage() {
     const updated = { ...selectedConv, status: status as MsgConversation['status'] };
     setSelectedConv(updated);
     setConversations(prev => prev.map(c => c.id === selectedId ? updated : c));
+  };
+
+  const handleAiModeToggle = async () => {
+    if (!selectedId || !selectedConv || aiTogglingId === selectedId) return;
+    setAiTogglingId(selectedId);
+    const newMode = !selectedConv.ai_mode;
+    try {
+      await msgConversationsApi.setAiMode(selectedId, newMode);
+      const updated = { ...selectedConv, ai_mode: newMode };
+      setSelectedConv(updated);
+      setConversations(prev => prev.map(c => c.id === selectedId ? updated : c));
+    } catch {
+      // ignore
+    } finally {
+      setAiTogglingId(null);
+    }
   };
 
   const handleSend = async () => {
@@ -266,6 +283,24 @@ export default function MessagesPage() {
                     {selectedConv.store_name || `חנות ${selectedConv.store_number}`}
                   </p>
                 </div>
+
+                {/* AI Mode Toggle */}
+                <button
+                  onClick={handleAiModeToggle}
+                  disabled={aiTogglingId === selectedId}
+                  title={selectedConv.ai_mode ? 'מצב AI פעיל — לחץ לכיבוי' : 'AI כבוי — לחץ להפעלה'}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                    selectedConv.ai_mode
+                      ? 'bg-[#006d43] text-white border-[#006d43] hover:bg-[#005a37]'
+                      : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300'
+                  } ${aiTogglingId === selectedId ? 'opacity-50 cursor-wait' : ''}`}
+                >
+                  {selectedConv.ai_mode
+                    ? <><Bot className="w-3.5 h-3.5" /><span>AI פעיל</span></>
+                    : <><BotOff className="w-3.5 h-3.5" /><span>AI</span></>
+                  }
+                </button>
+
                 <select
                   value={selectedConv.status}
                   onChange={e => handleStatusChange(e.target.value)}
@@ -325,6 +360,12 @@ export default function MessagesPage() {
 
               {/* Reply Input */}
               <div className="flex-shrink-0 bg-white border-t border-gray-100 px-4 py-3">
+                {selectedConv.ai_mode && (
+                  <div className="flex items-center gap-1.5 mb-2 text-xs text-[#006d43] font-medium">
+                    <Bot className="w-3.5 h-3.5" />
+                    <span>AI עונה אוטומטית — תוכל לכתוב ידנית בכל זמן</span>
+                  </div>
+                )}
                 {sendFailed && (
                   <p className="text-xs text-red-500 mb-2">שליחה נכשלה ❌ — בדוק שהמערכת פועלת</p>
                 )}

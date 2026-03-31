@@ -11,6 +11,7 @@ export interface MsgConversation {
   last_message_text: string | null;
   last_message_at: string | null;
   status: 'new' | 'open' | 'answered' | 'closed';
+  ai_mode?: boolean;
 }
 
 export interface MsgCardData {
@@ -66,6 +67,10 @@ export const msgConversationsApi = {
   getOne: (id: number) => apiFetch<MsgConversation>(`/conversations/${id}`),
   updateStatus: (id: number, status: string) =>
     apiFetch(`/conversations/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+  setAiMode: (id: number, ai_mode: boolean) =>
+    apiFetch<{ success: boolean; ai_mode: boolean }>(`/conversations/${id}/ai-mode`, {
+      method: 'PUT', body: JSON.stringify({ ai_mode }),
+    }),
 };
 
 export const msgMessagesApi = {

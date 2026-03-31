@@ -36,5 +36,20 @@ export function createConversationRoutes(pool: Pool) {
       await pool.query('UPDATE conversations SET status = $1, updated_at = NOW() WHERE id = $2', [status, id]);
       return { success: true };
     });
+
+    // Toggle AI mode for a conversation
+    fastify.put('/:id/ai-mode', async (request) => {
+      const { id } = request.params as any;
+      const { ai_mode } = request.body as any;
+      await pool.query('UPDATE conversations SET ai_mode = $1, updated_at = NOW() WHERE id = $2', [!!ai_mode, id]);
+      return { success: true, ai_mode: !!ai_mode };
+    });
+
+    // Get AI mode status for a conversation
+    fastify.get('/:id/ai-mode', async (request) => {
+      const { id } = request.params as any;
+      const result = await pool.query('SELECT ai_mode FROM conversations WHERE id = $1', [id]);
+      return { ai_mode: result.rows[0]?.ai_mode ?? false };
+    });
   };
 }
