@@ -47,12 +47,15 @@ export default function MsgConversationItem({ conv, isSelected, onClick }: Props
           )}
         </div>
 
-        {/* Name + time only */}
-        <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
-          <span className={`text-sm truncate ${isNew ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
-            {displayName}
-          </span>
-          <span className="text-[11px] text-gray-400 flex-shrink-0">{formatTime(conv.last_message_at)}</span>
+        {/* Name + time + preview */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <span className={`text-sm truncate ${isNew ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+              {displayName}
+            </span>
+            <span className="text-[11px] text-gray-400 flex-shrink-0">{formatTime(conv.last_message_at)}</span>
+          </div>
+          <p className="text-xs truncate text-gray-400">{conv.last_message_text || '—'}</p>
         </div>
       </button>
     </div>
