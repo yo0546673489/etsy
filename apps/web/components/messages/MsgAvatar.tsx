@@ -1,6 +1,7 @@
 interface Props {
   name: string;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
+  online?: boolean;
 }
 
 const colors = [
@@ -14,13 +15,18 @@ function getColor(name: string) {
   return colors[Math.abs(h) % colors.length];
 }
 
-export default function MsgAvatar({ name, size = 'md' }: Props) {
+export default function MsgAvatar({ name, size = 'md', online }: Props) {
   const letter = (name || '?').charAt(0).toUpperCase();
-  const cls = size === 'sm' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm';
+  const cls = size === 'sm' ? 'w-8 h-8 text-xs' : size === 'lg' ? 'w-12 h-12 text-base' : 'w-10 h-10 text-sm';
   return (
-    <div className={`${cls} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0`}
-      style={{ backgroundColor: getColor(name) }}>
-      {letter}
+    <div className="relative flex-shrink-0">
+      <div className={`${cls} rounded-full flex items-center justify-center text-white font-bold`}
+        style={{ backgroundColor: getColor(name) }}>
+        {letter}
+      </div>
+      {online && (
+        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
+      )}
     </div>
   );
 }

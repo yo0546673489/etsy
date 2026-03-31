@@ -8,13 +8,6 @@ interface Props {
   onClick: () => void;
 }
 
-const statusDot: Record<string, string> = {
-  new: 'bg-blue-500',
-  open: 'bg-green-500',
-  answered: 'bg-gray-400',
-  closed: 'bg-red-400',
-};
-
 function formatTime(ts: string | null): string {
   if (!ts) return '';
   const d = new Date(ts);
@@ -30,26 +23,28 @@ export default function MsgConversationItem({ conv, isSelected, onClick }: Props
   return (
     <button
       onClick={onClick}
-      className={`w-full text-right flex items-start gap-3 px-4 py-3 border-b border-[var(--border-color)] transition-colors
-        ${isSelected ? 'bg-[var(--primary-bg,#e8f5ee)]' : isNew ? 'bg-blue-50/50 hover:bg-[var(--card-hover)]' : 'hover:bg-[var(--card-hover)]'}`}
+      dir="rtl"
+      className={`w-full text-right flex items-center gap-3 px-4 py-3.5 transition-colors border-b border-gray-100
+        ${isSelected ? 'bg-[#006d43]/10' : 'hover:bg-gray-50'}`}
     >
-      <MsgAvatar name={conv.customer_name} />
-      <div className="flex-1 min-w-0 text-right">
+      <MsgAvatar name={conv.customer_name} online={conv.status === 'open'} />
+      <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
-          <span className="text-[10px] text-[var(--text-muted)] mr-auto">{formatTime(conv.last_message_at)}</span>
-          <span className={`font-semibold text-sm text-[var(--text-primary)] ${isNew ? 'font-bold' : ''} truncate mr-1`}>
+          <span className="text-xs text-gray-400">{formatTime(conv.last_message_at)}</span>
+          <span className={`text-sm truncate ${isNew ? 'font-bold text-gray-900' : 'font-semibold text-gray-800'}`}>
             {conv.customer_name}
           </span>
         </div>
-        <div className="flex items-center justify-end gap-1.5">
-          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDot[conv.status] || 'bg-gray-400'}`} />
-          <span className="text-xs text-[var(--text-muted)] truncate">
-            {conv.store_name || `חנות ${conv.store_number}`}
-          </span>
+        <div className="flex items-center justify-between">
+          {isNew && (
+            <span className="w-5 h-5 rounded-full bg-[#006d43] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+              1
+            </span>
+          )}
+          <p className={`text-xs truncate text-right flex-1 ${isNew ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+            {conv.last_message_text || conv.store_name || '—'}
+          </p>
         </div>
-        <p className="text-xs text-[var(--text-muted)] truncate text-right mt-0.5">
-          {conv.last_message_text || '—'}
-        </p>
       </div>
     </button>
   );
