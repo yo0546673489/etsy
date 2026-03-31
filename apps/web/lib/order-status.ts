@@ -7,11 +7,16 @@ export const PAYMENT_STATUS_STYLES: Record<PaymentStatus, { dot: string; text: s
 };
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  processing: 'Processing',
-  in_transit: 'In Transit',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-  refunded: 'Refunded',
+  processing: 'בטיפול',
+  in_transit: 'נשלח',
+  completed: 'הושלם',
+  cancelled: 'בוטל',
+  refunded: 'הוחזר',
+};
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  paid: 'שולם',
+  unpaid: 'לא שולם',
 };
 
 export const ORDER_STATUS_BADGE_CLASSES: Record<OrderStatus, string> = {

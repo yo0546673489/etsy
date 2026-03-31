@@ -11,7 +11,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import OnboardingModal from '@/components/OnboardingModal';
 import { DisconnectedShopBanner } from '@/components/ui/DisconnectedShopBanner';
 import { onboardingApi, dashboardApi, type DashboardStats, type DashboardOrder } from '@/lib/api';
-import { PAYMENT_STATUS_STYLES, normalizePaymentStatus } from '@/lib/order-status';
+import { PAYMENT_STATUS_STYLES, PAYMENT_STATUS_LABELS, normalizePaymentStatus } from '@/lib/order-status';
 import { cn } from '@/lib/utils';
 import {
   Eye,
@@ -274,7 +274,7 @@ function OwnerDashboardContent() {
                         'text-xs px-2.5 py-1 rounded-lg font-bold',
                         PAYMENT_STATUS_STYLES[normalizePaymentStatus(order.payment_status)]
                       )}>
-                        {order.payment_status}
+                        {PAYMENT_STATUS_LABELS[normalizePaymentStatus(order.payment_status)]}
                       </span>
                     </td>
                     <td className="py-3.5 font-bold text-gray-800 text-left">
