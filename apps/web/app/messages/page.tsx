@@ -50,17 +50,13 @@ export default function MessagesPage() {
       if (statusFilter) params.status = statusFilter;
       if (search) params.search = search;
       const data = await msgConversationsApi.getAll(params);
-      if (selectedShopIds.length > 0) {
-        setConversations(data.filter(c => selectedShopIds.includes(c.store_id)));
-      } else {
-        setConversations(data);
-      }
+      setConversations(data);
     } catch {
       setApiError(true);
     } finally {
       setConvLoading(false);
     }
-  }, [selectedShopIds, statusFilter, search]);
+  }, [statusFilter, search]);
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
 
