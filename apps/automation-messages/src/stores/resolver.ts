@@ -42,11 +42,6 @@ export class StoreResolver {
     return null;
   }
 
-  async resolveByNumber(storeNumber: number): Promise<StoreInfo | null> {
-    const result = await this.pool.query('SELECT * FROM stores WHERE store_number = $1', [storeNumber]);
-    return result.rows[0] || null;
-  }
-
   async resolveById(storeId: number): Promise<StoreInfo | null> {
     const result = await this.pool.query('SELECT * FROM stores WHERE id = $1', [storeId]);
     return result.rows[0] || null;

@@ -67,7 +67,7 @@ export class EtsySender {
       });
 
       if (btnFound) {
-        // Human click through ghost cursor — Bézier curve mouse movement
+        // Human click through ghost cursor — Bezier curve mouse movement
         await this.human.humanClick('[data-etsy-reply-send="true"]');
         // Clean up the temporary attribute
         await this.page.evaluate(() => {
