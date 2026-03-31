@@ -20,7 +20,7 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('en');
+  const [language, setLanguageState] = useState<Language>('he');
 
   // Load language from localStorage on mount
   useEffect(() => {
@@ -28,6 +28,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'he')) {
       setLanguageState(savedLanguage);
       updateDocumentDirection(savedLanguage);
+    } else {
+      // Default to Hebrew — set in localStorage so it persists
+      localStorage.setItem('language', 'he');
+      updateDocumentDirection('he');
     }
   }, []);
 

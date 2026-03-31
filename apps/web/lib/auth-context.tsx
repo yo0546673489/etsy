@@ -7,7 +7,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { authApi, type User, type ApiError } from './api';
+import { authApi, financialsApi, type User, type ApiError } from './api';
 
 interface AuthContextType {
   user: User | null;
@@ -145,6 +145,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Cookies are set by the backend response — just update React state
       setUser(nextUser);
 
+      // Trigger background data sync so dashboard shows fresh Etsy data
+      financialsApi.triggerSync().catch(() => {});
+
       // Hard reload so all contexts (shops, stats, etc.) re-initialize fresh
       const dest = (redirectAfter && redirectAfter.startsWith('/'))
         ? redirectAfter
@@ -241,6 +244,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       // Post-login onboarding for new users
+      // Trigger background data sync so dashboard shows fresh Etsy data
+      financialsApi.triggerSync().catch(() => {});
+
       // Hard reload so all contexts re-initialize fresh after Google login
       window.location.href = response.user.is_new_user ? '/dashboard?welcome=true' : '/dashboard';
     } catch (err) {
