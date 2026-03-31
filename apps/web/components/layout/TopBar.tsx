@@ -311,15 +311,6 @@ export function TopBar() {
             />
           </div>
 
-          {/* Help */}
-          <a
-            href="/docs"
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:bg-[var(--background)] hover:text-[var(--text-primary)] transition-colors"
-            title="עזרה"
-          >
-            <BookOpen className="w-4 h-4" />
-          </a>
-
           {/* User Menu */}
           <div className="relative">
             <button
