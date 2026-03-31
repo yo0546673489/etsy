@@ -12,7 +12,7 @@ import MsgConversationItem from '@/components/messages/MsgConversationItem';
 import MsgBubble from '@/components/messages/MsgBubble';
 import MsgDateSeparator from '@/components/messages/MsgDateSeparator';
 import MsgSkeleton from '@/components/messages/MsgSkeleton';
-import { MessageCircle, Search, Send, ChevronLeft, Smile, ChevronDown, Bot, BotOff } from 'lucide-react';
+import { MessageCircle, Search, Send, ChevronLeft, Smile, ChevronDown, Bot } from 'lucide-react';
 
 type PendingMsg = MsgMessage & { _pending?: boolean; _failed?: boolean };
 
@@ -297,7 +297,7 @@ export default function MessagesPage() {
                 >
                   {selectedConv.ai_mode
                     ? <><Bot className="w-3.5 h-3.5" /><span>AI פעיל</span></>
-                    : <><BotOff className="w-3.5 h-3.5" /><span>AI</span></>
+                    : <><Bot className="w-3.5 h-3.5 opacity-50" /><span>AI</span></>
                   }
                 </button>
 
