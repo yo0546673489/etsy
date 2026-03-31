@@ -48,23 +48,20 @@ export default function MessagesPage() {
     msgStoresApi.getAll().then(setMsgStores).catch(() => {});
   }, []);
 
-  // Map selected main-app shops → messages-system store IDs by name matching
+  // Map selected main-app shops → messages-system store IDs by exact name match
   const selectedMsgStoreIds = useMemo<Set<number> | null>(() => {
     if (!msgStores.length || selectedShops.length === 0) return null;
-    // All shops selected → show everything
-    if (selectedShops.length >= shops.length) return null;
     const ids = new Set<number>();
     for (const shop of selectedShops) {
       const shopName = shop.display_name.toLowerCase().trim();
       for (const ms of msgStores) {
-        const msName = ms.store_name.toLowerCase().trim();
-        if (msName === shopName) {
+        if (ms.store_name.toLowerCase().trim() === shopName) {
           ids.add(ms.id);
         }
       }
     }
     return ids.size > 0 ? ids : null;
-  }, [selectedShops, shops, msgStores]);
+  }, [selectedShops, msgStores]);
 
   const loadConversations = useCallback(async () => {
     setConvLoading(true);
