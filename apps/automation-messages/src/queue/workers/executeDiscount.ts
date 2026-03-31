@@ -112,6 +112,7 @@ export function createDiscountWorker(pool: Pool, platformPool?: Pool) {
     {
       connection: getRedisConnection(),
       concurrency: 1,
+      lockDuration: 300000,
       limiter: { max: 2, duration: 60000 }, // מקסימום 2 פעולות הנחה לדקה
     }
   );

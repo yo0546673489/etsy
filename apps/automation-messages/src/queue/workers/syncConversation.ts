@@ -65,6 +65,7 @@ export function createSyncWorker(pool: Pool, jobQueue: JobQueue): Worker {
   }, {
     connection: getRedisConnection(),
     concurrency: 3,
+    lockDuration: 300000,
     limiter: { max: 5, duration: 60000 },
   });
 }
