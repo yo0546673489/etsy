@@ -37,8 +37,9 @@ export function createDiscountWorker(pool: Pool, platformPool?: Pool) {
           [platformTaskId]
         );
       } else {
+        // Only update to failed if not already completed (avoid overwriting success on retry)
         await platformPool.query(
-          "UPDATE discount_tasks SET status = 'failed', error_message = $2, retry_count = retry_count + 1 WHERE id = $1",
+          "UPDATE discount_tasks SET status = 'failed', error_message = $2, retry_count = retry_count + 1 WHERE id = $1 AND status != 'completed'",
           [platformTaskId, errorMessage || 'Unknown error']
         );
       }
@@ -73,8 +74,19 @@ export function createDiscountWorker(pool: Pool, platformPool?: Pool) {
       try {
         browser = await chromium.connectOverCDP(browserInfo.ws.puppeteer, { timeout: 60000 });
         const context = browser.contexts()[0] || await browser.newContext();
-        // תמיד פותחים דף חדש — לא סומכים על דף קיים שעלול להיות סגור
-        const page = await context.newPage();
+        // השתמש בדף קיים (כדי לשמור על session של AdsPower), אחרת פתח חדש
+        const existingPages = context.pages();
+        let page;
+        if (existingPages.length > 0) {
+          page = existingPages[0];
+          // המתן לסיום ניווט קיים
+          await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
+          logger.info(`Reusing existing page: ${page.url()}`);
+        } else {
+          page = await context.newPage();
+          await new Promise(r => setTimeout(r, 2000));
+          logger.info('Created new page (no existing pages found)');
+        }
 
         const discountManager = new EtsyDiscountManager(page);
 

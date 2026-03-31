@@ -51,13 +51,23 @@ export class EtsyDiscountManager {
     try {
       logger.info(`Creating sale: ${config.saleName} (${config.discountPercent}%)`);
 
-      // שלב 1: ניווט לדף יצירת מבצע
-      await this.page.goto('https://www.etsy.com/your/shops/me/sales-discounts/step/createSale', {
-        waitUntil: 'domcontentloaded',
-        timeout: 30000,
-      });
-      await this.page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
-      await randomDelay(2000, 3500);
+      // שלב 1: ניווט לדף יצירת מבצע (דלג אם כבר שם)
+      const pageUrlBefore = this.page.url();
+      const alreadyOnCreateSale = pageUrlBefore.includes('sales-discounts') && pageUrlBefore.includes('createSale');
+
+      if (alreadyOnCreateSale) {
+        logger.info(`Already on createSale page, skipping navigation (${pageUrlBefore})`);
+        // רענן את הדף כדי לוודא state נקי
+        await this.page.reload({ waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});
+        await randomDelay(1000, 2000);
+      } else {
+        await this.page.goto('https://www.etsy.com/your/shops/me/sales-discounts/step/createSale', {
+          waitUntil: 'domcontentloaded',
+          timeout: 30000,
+        });
+        await this.page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+        await randomDelay(1500, 2500);
+      }
 
       // בדוק שלא נחסמנו
       const currentUrl = this.page.url();
@@ -65,9 +75,6 @@ export class EtsyDiscountManager {
         logger.error('Not logged in to Etsy');
         return false;
       }
-
-      await this.human.randomMouseMovement();
-      await randomDelay(500, 1000);
 
       // Log page title and URL to confirm we're on the right page
       try {
@@ -308,11 +315,8 @@ export class EtsyDiscountManager {
       await saleNameInput.type(config.saleName, { delay: randomBetween(50, 120) });
       await randomDelay(500, 1000);
 
-      // שלב 9: סקירה כמו בן אדם
-      await this.human.humanScroll('up', randomBetween(200, 400));
-      await randomDelay(1500, 3000);
-      await this.human.humanScroll('down', randomBetween(200, 400));
-      await randomDelay(1000, 2000);
+      // שלב 9: המתנה קצרה לפני שליחה
+      await randomDelay(800, 1500);
 
       // שלב 9.5: screenshot לפני Continue כדי לאמת מצב הטופס
       try {
@@ -377,39 +381,73 @@ export class EtsyDiscountManager {
         logger.info('Screenshot saved: C:\\etsy\\debug-after-continue.png');
       } catch (e) { /* ignore */ }
 
-      // שלב 11: בדיקה אם יש שלב נוסף (בחירת היקף)
+      // שלב 11: זיהוי שלב 2 — בחירת scope (Etsy SPA לא משנה URL!)
       const afterUrl = this.page.url();
       logger.info(`After Continue URL: ${afterUrl}`);
 
-      if (afterUrl.includes('createSale') || afterUrl.includes('step')) {
-        // Still on form — check for actual error messages (ignore "Loading" which is transient)
-        const errorMsg = await this.page.locator('.wt-text-red, [role="alert"]').first().textContent({ timeout: 3000 }).catch(() => '');
-        const isRealError = errorMsg && errorMsg.trim().length > 0 && !errorMsg.includes('Loading');
-        if (isRealError) {
-          logger.error(`Sale creation error: ${errorMsg}`);
-          // Try clicking Continue again in case of transient issue
-          await this.page.evaluate(() => {
-            const btns = Array.from(document.querySelectorAll('button'));
-            const cont = btns.find((b: Element) => (b as HTMLButtonElement).textContent?.trim() === 'Continue');
-            if (cont) (cont as HTMLButtonElement).click();
-          });
-          await randomDelay(4000, 6000);
+      // בדוק אם "Review and confirm" או "All listings" נראים — זה שלב 2
+      const reviewBtnVisible = await this.page.locator('button:has-text("Review and confirm")').isVisible({ timeout: 3000 }).catch(() => false);
+      const allListingsVisible = await this.page.evaluate(() => {
+        const els = Array.from(document.querySelectorAll('*'));
+        return els.some(e => (e as HTMLElement).innerText?.trim() === 'All listings' && (e as HTMLElement).offsetParent !== null);
+      }).catch(() => false);
+
+      logger.info(`Step 2 detection: reviewBtn=${reviewBtnVisible}, allListings=${allListingsVisible}`);
+
+      if (reviewBtnVisible || allListingsVisible) {
+        logger.info('Scope selection step detected — proceeding...');
+        const scopeDone = await this._handleScopeStep(config);
+        if (scopeDone) {
+          // step3 (Confirm and create sale) was clicked — sale was submitted
+          logger.info(`Sale "${config.saleName}" submitted via scope step. Marking success.`);
+          return true;
         }
-      }
+        await randomDelay(3000, 5000);
+      } else if (afterUrl.includes('createSale')) {
+        // עדיין בשלב 1 — בדוק שגיאות אמיתיות
+        const allErrors = await this.page.evaluate(() => {
+          const selectors = ['.wt-text-red', '[role="alert"]', '.error-text'];
+          const texts: string[] = [];
+          selectors.forEach(sel => {
+            document.querySelectorAll(sel).forEach(el => {
+              const t = (el as HTMLElement).innerText?.trim();
+              if (t && t.length > 0) texts.push(t);
+            });
+          });
+          return texts;
+        }).catch(() => [] as string[]);
+        logger.info(`Form errors after Continue: ${JSON.stringify(allErrors)}`);
 
-      // שלב 12: אם יש בחירת scope בשלב הבא
-      const hasScopeSelection = await this.page.locator(
-        'input[type="radio"][name*="scope"], input[type="radio"][name*="target"], button:has-text("All listings"), button:has-text("Specific listings")'
-      ).count().catch(() => 0);
+        // "existing promotion" = המבצע כבר נוצר בניסיון קודם → הצלחה!
+        const existingNameError = allErrors.some(e => e.toLowerCase().includes('existing promotion') || e.toLowerCase().includes('has this name'));
+        if (existingNameError) {
+          logger.info(`Sale "${config.saleName}" already exists on Etsy (from previous attempt). Marking success.`);
+          return true;
+        }
 
-      if (hasScopeSelection > 0) {
-        logger.info('Scope selection step detected...');
-        await this._handleScopeStep(config);
+        const realErrors = allErrors.filter(e => e.length > 0 && !e.includes('Loading'));
+        if (realErrors.length > 0) {
+          logger.error(`Sale creation form errors: ${realErrors.join(' | ')}`);
+          return false;
+        }
+        // אולי הדף עדיין נטען — המתן עוד קצת
+        await randomDelay(3000, 5000);
+        const reviewBtnLate = await this.page.locator('button:has-text("Review and confirm")').isVisible({ timeout: 5000 }).catch(() => false);
+        if (reviewBtnLate) {
+          logger.info('Scope step appeared after additional wait');
+          const lateScopeDone = await this._handleScopeStep(config);
+          if (lateScopeDone) {
+            logger.info(`Sale "${config.saleName}" submitted via late scope step. Marking success.`);
+            return true;
+          }
+          await randomDelay(3000, 5000);
+        }
       }
 
       // שלב 13: אימות הצלחה
       await randomDelay(2000, 4000);
       const finalUrl = this.page.url();
+      logger.info(`Final URL after all steps: ${finalUrl}`);
 
       // Success = navigated away from createSale to a different sales page
       const navigatedAway = finalUrl.includes('sales-discounts') && !finalUrl.includes('createSale');
@@ -419,7 +457,38 @@ export class EtsyDiscountManager {
         return true;
       }
 
-      // Still on createSale — check if there's a real error on the form
+      // עדיין על createSale — ייתכן ש-Etsy לא ניווט (SPA)
+      // בדוק אם המבצע נוצר בפועל על ידי חיפוש ברשימת המבצעים
+      logger.info('URL still shows createSale — checking if sale was created in list...');
+      try {
+        await this.page.goto('https://www.etsy.com/your/shops/me/sales-discounts', {
+          waitUntil: 'domcontentloaded', timeout: 20000,
+        });
+        await randomDelay(3000, 4000);
+        // צלם screenshot של רשימת המבצעים
+        try {
+          const fsmod = await import('fs');
+          const sc = await this.page.screenshot({ type: 'png' });
+          fsmod.writeFileSync('C:\\etsy\\debug-sales-list.png', sc);
+          const pageText = await this.page.evaluate(() => document.body.innerText?.substring(0, 500));
+          logger.info(`Sales list page text: ${pageText?.replace(/\n/g, ' ').trim()}`);
+        } catch(e) { /* ignore */ }
+        // חפש את שם המבצע (גמיש יותר)
+        const saleExists = await this.page.evaluate((saleName) => {
+          return document.body.innerText?.includes(saleName) || false;
+        }, config.saleName).catch(() => false);
+        if (saleExists) {
+          logger.info(`Sale "${config.saleName}" confirmed in sales list!`);
+          return true;
+        }
+        // בדוק אם יש כלל מבצע כלשהו
+        const hasSales = await this.page.evaluate(() => {
+          const body = document.body.innerText || '';
+          return body.includes('SALE') || body.includes('% off') || body.includes('Active');
+        }).catch(() => false);
+        logger.info(`Sales list has any sales: ${hasSales}`);
+      } catch (e) { logger.warn('Sales list check failed', e); }
+
       const errorTexts = await this.page.evaluate(() => {
         const selectors = ['.wt-text-red', '[role="alert"]', '.error-text', '.wt-label--error'];
         const errors: string[] = [];
@@ -430,13 +499,9 @@ export class EtsyDiscountManager {
           });
         });
         return errors;
-      });
+      }).catch(() => [] as string[]);
 
-      if (errorTexts.length > 0) {
-        logger.error(`Sale form errors: ${errorTexts.join(' | ')}`);
-      }
-
-      logger.warn(`Could not verify sale "${config.saleName}" — still at createSale URL. Errors: ${errorTexts.join(' | ')}`);
+      logger.warn(`Could not verify sale "${config.saleName}". Errors: ${errorTexts.join(' | ')}`);
       return false;
     } catch (error) {
       logger.error(`Failed to create sale: ${config.saleName}`, error);
@@ -446,15 +511,22 @@ export class EtsyDiscountManager {
 
   /**
    * טיפול בשלב בחירת היקף (אם קיים)
+   * מחזיר true אם step3 (Confirm and create sale) נלחץ בהצלחה
    */
-  private async _handleScopeStep(config: SaleConfig): Promise<void> {
+  private async _handleScopeStep(config: SaleConfig): Promise<boolean> {
     try {
-      if (config.targetScope === 'whole_shop') {
-        // בחר "All listings" אם קיים
-        const allListingsOption = this.page.locator(
-          'input[type="radio"][value*="all"], input[type="radio"][value*="whole"], button:has-text("All listings")'
-        ).first();
-        await allListingsOption.click().catch(() => {});
+      if (config.targetScope === 'whole_shop' || !config.listingIds?.length) {
+        // בחר "All listings" — הכפתור יכול להיות button, label, div או radio
+        const clicked = await this.page.evaluate(() => {
+          const all = Array.from(document.querySelectorAll('*'));
+          const el = all.find(e => (e as HTMLElement).innerText?.trim() === 'All listings' && (e as HTMLElement).offsetParent !== null);
+          if (el) { (el as HTMLElement).click(); return true; }
+          return false;
+        }).catch(() => false);
+        if (!clicked) {
+          await this.page.locator('input[type="radio"][value*="all"], input[type="radio"][value*="whole"]').first().click().catch(() => {});
+        }
+        logger.info(`All listings clicked: ${clicked}`);
         await randomDelay(500, 1000);
       } else if (config.listingIds && config.listingIds.length > 0) {
         // בחר "Specific listings"
@@ -473,12 +545,87 @@ export class EtsyDiscountManager {
         }
       }
 
-      // לחץ Continue/Save בשלב הזה
-      const nextButton = this.page.locator('button:has-text("Continue"), button:has-text("Save"), button[type="submit"]').last();
-      await nextButton.click().catch(() => {});
-      await randomDelay(2000, 4000);
-    } catch (e) {
-      logger.warn('Scope step handling failed', e);
+      // לחץ על "Review and confirm" בדיוק (לא "Save" או כפתורים אחרים)
+      logger.info('Clicking exact "Review and confirm" button...');
+
+      // המתן שהכפתור לא יהיה בלואדינג
+      await randomDelay(1500, 2500);
+
+      const clickedReview = await this.page.evaluate(() => {
+        const btns = Array.from(document.querySelectorAll('button'));
+        // חפש כפתור שהטקסט שלו הוא בדיוק "Review and confirm"
+        const exact = btns.find(btn => {
+          const text = (btn as HTMLButtonElement).textContent?.replace(/\s+/g, ' ').trim() || '';
+          return text === 'Review and confirm';
+        });
+        if (exact) {
+          (exact as HTMLButtonElement).click();
+          return 'Review and confirm';
+        }
+        // fallback: כל כפתור שמכיל את הטקסט ורק אותו
+        const partial = btns.find(btn => {
+          const text = (btn as HTMLButtonElement).textContent?.replace(/\s+/g, ' ').trim() || '';
+          return /^Review and confirm/i.test(text) && !text.toLowerCase().includes('loading');
+        });
+        if (partial) {
+          (partial as HTMLButtonElement).click();
+          return `partial: ${partial.textContent?.trim()}`;
+        }
+        // Log all buttons for debugging
+        return 'NOT FOUND: ' + btns.map(b => `"${b.textContent?.replace(/\s+/g, ' ').trim()}"`).join(', ');
+      }).catch((e: any) => String(e));
+      logger.info(`Review and confirm click result: ${clickedReview}`);
+
+      // המתן לתגובת השרת (ייתכן שיש שלב 3 או redirect)
+      await this.page.waitForLoadState('networkidle', { timeout: 12000 }).catch(() => {});
+      await randomDelay(2000, 3000);
+
+      // צלם screenshot לאחר לחיצה
+      try {
+        const fsmod = await import('fs');
+        const sc = await this.page.screenshot({ type: 'png' });
+        fsmod.writeFileSync('C:\\etsy\\debug-step3.png', sc);
+        logger.info(`Step 3 screenshot saved. URL: ${this.page.url()}`);
+      } catch(e) {
+        logger.info(`Step 3 screenshot failed: ${e}`);
+      }
+
+      // בדוק אם יש שלב 3 — כפתור Confirm and create sale
+      const step3Clicked = await this.page.evaluate(() => {
+        const btns = Array.from(document.querySelectorAll('button'));
+        const b = btns.find(btn => {
+          const text = (btn as HTMLButtonElement).textContent?.replace(/\s+/g, ' ').trim() || '';
+          return /^(Confirm and create sale|Activate sale|Schedule sale|Activate|Create sale|Save sale)$/i.test(text);
+        });
+        if (b) { (b as HTMLButtonElement).click(); return (b as HTMLButtonElement).textContent?.trim() || 'clicked'; }
+        return null;
+      }).catch(() => null);
+
+      if (step3Clicked) {
+        logger.info(`Step 3 button clicked: ${step3Clicked}`);
+        // המתן שהדף יתייצב אחרי הלחיצה
+        await this.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+        await randomDelay(3000, 5000);
+        const urlAfter = this.page.url();
+        logger.info(`URL after step3: ${urlAfter}`);
+        // צלם screenshot אחרי Confirm and create sale
+        try {
+          const fsmod = await import('fs');
+          const sc = await this.page.screenshot({ type: 'png' });
+          fsmod.writeFileSync('C:\\etsy\\debug-after-confirm.png', sc);
+          const pageText = await this.page.evaluate(() => document.body.innerText?.substring(0, 600) || '');
+          logger.info(`After-confirm screenshot saved. Page text: ${pageText.replace(/\n/g, ' ').trim()}`);
+        } catch(e) {
+          logger.info(`After-confirm screenshot failed: ${e}`);
+        }
+        return true;
+      }
+
+      logger.warn('Step 3 button NOT found after Review and confirm');
+      return false;
+    } catch (e: any) {
+      logger.warn(`Scope step handling failed: ${e.message}`);
+      return false;
     }
   }
 
