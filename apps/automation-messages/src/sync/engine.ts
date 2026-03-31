@@ -28,27 +28,32 @@ export class SyncEngine {
       await client.query('BEGIN');
 
       let conversationId: number;
-      // Search by exact URL OR by the real Etsy URL pattern (handles ablink → etsy.com redirect)
+      // Normalize URL — strip query params to get clean conversation ID for matching
+      // e.g. https://www.etsy.com/messages/1635070082?from_email=... → https://www.etsy.com/messages/1635070082
+      const normalizedUrl = scraped.conversationUrl.split('?')[0];
+      // Search by exact URL, normalized URL (no query params), or by ablink + customer name
       const existing = await client.query(
         `SELECT id, etsy_conversation_url FROM conversations
          WHERE store_id = $1 AND (
            etsy_conversation_url = $2
-           OR (etsy_conversation_url LIKE '%ablink%' AND customer_name = $3 AND $3 NOT IN ('Unknown Customer', 'Unknown Buyer', ''))
+           OR etsy_conversation_url = $3
+           OR (etsy_conversation_url LIKE '%' || split_part($2, '?', 1) || '%' AND $2 LIKE '%etsy.com%')
+           OR (etsy_conversation_url LIKE '%ablink%' AND customer_name = $4 AND $4 NOT IN ('Unknown Customer', 'Unknown Buyer', ''))
          )
          ORDER BY id DESC LIMIT 1`,
-        [storeId, scraped.conversationUrl, scraped.customerName]
+        [storeId, scraped.conversationUrl, normalizedUrl, scraped.customerName]
       );
 
       if (existing.rows.length > 0) {
         conversationId = existing.rows[0].id;
-        // Update URL to real Etsy URL if we now have a better one
-        if (existing.rows[0].etsy_conversation_url !== scraped.conversationUrl &&
-            scraped.conversationUrl.includes('etsy.com')) {
+        // Update URL: always prefer the clean normalized URL (without query params)
+        const preferredUrl = normalizedUrl.includes('etsy.com') ? normalizedUrl : scraped.conversationUrl;
+        if (existing.rows[0].etsy_conversation_url !== preferredUrl && preferredUrl.includes('etsy.com')) {
           await client.query(
             'UPDATE conversations SET etsy_conversation_url = $1 WHERE id = $2',
-            [scraped.conversationUrl, conversationId]
+            [preferredUrl, conversationId]
           );
-          logger.info(`Updated conversation ${conversationId} URL to real Etsy URL`);
+          logger.info(`Updated conversation ${conversationId} URL to: ${preferredUrl}`);
         }
       } else {
         const inserted = await client.query(

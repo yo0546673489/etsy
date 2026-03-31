@@ -71,8 +71,24 @@ export class EtsyScraper {
         const clean = text.replace(/^Message:\s*/i, '').trim();
         if (!clean) return;
 
-        // Store messages have wt-sem-bg-surface-informational-subtle
-        const isStore = el.classList.contains('wt-sem-bg-surface-informational-subtle');
+        // Store messages: check multiple possible CSS classes Etsy uses
+        // Also check parent elements for alignment (store messages are right-aligned)
+        const isStore = el.classList.contains('wt-sem-bg-surface-informational-subtle') ||
+          el.classList.contains('wt-bg-slime-tint') ||
+          el.closest('[class*="seller"]') !== null ||
+          el.closest('[class*="shop"]') !== null ||
+          el.closest('[class*="outgoing"]') !== null ||
+          (() => {
+            // Check if this bubble is right-aligned (store messages are on the right)
+            let parent = el.parentElement;
+            for (let i = 0; i < 5; i++) {
+              if (!parent) break;
+              const cls = parent.className || '';
+              if (cls.includes('wt-justify-content-flex-end') || cls.includes('justify-end') || cls.includes('right')) return true;
+              parent = parent.parentElement;
+            }
+            return false;
+          })();
 
         messages.push({
           senderType: isStore ? 'store' : 'customer',

@@ -22,6 +22,17 @@ export function createReplyRoutes(pool: Pool, jobQueue: JobQueue, resolver: Stor
         [conversation_id, message_text, 'manual', 'pending']
       );
 
+      // Save the reply immediately to messages table so it appears in the UI right away
+      const msgHash = require('crypto').createHash('sha256')
+        .update(`${conversation_id}|store|${message_text.trim()}`)
+        .digest('hex');
+      await pool.query(
+        `INSERT INTO messages (conversation_id, sender_type, sender_name, message_text, sent_at, message_hash)
+         VALUES ($1, 'store', $2, $3, NOW(), $4)
+         ON CONFLICT (message_hash) DO NOTHING`,
+        [conversation_id, convo.store_name || 'Store', message_text, msgHash]
+      ).catch(() => {}); // non-critical
+
       await jobQueue.addSendReplyJob({
         replyQueueId: queueResult.rows[0].id,
         conversationId: conversation_id,
