@@ -55,10 +55,10 @@ export default function MessagesPage() {
     if (selectedShops.length >= shops.length) return null;
     const ids = new Set<number>();
     for (const shop of selectedShops) {
-      const shopName = shop.display_name.toLowerCase();
+      const shopName = shop.display_name.toLowerCase().trim();
       for (const ms of msgStores) {
-        const msName = ms.store_name.toLowerCase();
-        if (msName.includes(shopName) || shopName.includes(msName)) {
+        const msName = ms.store_name.toLowerCase().trim();
+        if (msName === shopName) {
           ids.add(ms.id);
         }
       }
