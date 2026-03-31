@@ -108,7 +108,15 @@ export default function MessagesPage() {
     setReplyText('');
     try {
       const conv = await msgConversationsApi.getOne(id);
-      setSelectedConv(conv);
+      // Mark as open if new — clears unread badge immediately
+      if (conv.status === 'new') {
+        await msgConversationsApi.updateStatus(id, 'open').catch(() => {});
+        const updated = { ...conv, status: 'open' as const };
+        setSelectedConv(updated);
+        setConversations(prev => prev.map(c => c.id === id ? { ...c, status: 'open' as const } : c));
+      } else {
+        setSelectedConv(conv);
+      }
     } catch {}
   };
 
