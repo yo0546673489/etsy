@@ -11,7 +11,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import OnboardingModal from '@/components/OnboardingModal';
 import { DisconnectedShopBanner } from '@/components/ui/DisconnectedShopBanner';
 import { onboardingApi, dashboardApi, type DashboardStats, type DashboardOrder } from '@/lib/api';
-import { PAYMENT_STATUS_STYLES, PAYMENT_STATUS_LABELS, normalizePaymentStatus } from '@/lib/order-status';
+import { ORDER_STATUS_LABELS, ORDER_STATUS_BADGE_CLASSES, normalizeOrderStatus } from '@/lib/order-status';
 import { cn } from '@/lib/utils';
 import {
   Eye,
@@ -255,7 +255,6 @@ function OwnerDashboardContent() {
             <table className="w-full text-right">
               <thead>
                 <tr className="text-gray-400 text-xs border-b border-gray-100">
-                  {/* RTL table: first th = visual RIGHT */}
                   <th className="pb-3 font-semibold">מספר הזמנה</th>
                   <th className="pb-3 font-semibold">לקוח</th>
                   <th className="pb-3 font-semibold">תאריך</th>
@@ -264,26 +263,32 @@ function OwnerDashboardContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {recentOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-3.5 font-medium text-gray-800">{order.order_id}</td>
-                    <td className="py-3.5 text-gray-600">{order.buyer_name}</td>
-                    <td className="py-3.5 text-gray-400 text-sm">{order.date}</td>
-                    <td className="py-3.5">
-                      <span className={cn(
-                        'text-xs px-2.5 py-1 rounded-lg font-bold',
-                        PAYMENT_STATUS_STYLES[normalizePaymentStatus(order.payment_status)]
-                      )}>
-                        {PAYMENT_STATUS_LABELS[normalizePaymentStatus(order.payment_status)]}
-                      </span>
-                    </td>
-                    <td className="py-3.5 font-bold text-gray-800 text-left">
-                      {order.amount ?? (order.total_price != null
-                        ? `${order.currency || ''} ${order.total_price.toFixed(2)}`
-                        : '—')}
-                    </td>
-                  </tr>
-                ))}
+                {recentOrders.map((order) => {
+                  const orderStatus = normalizeOrderStatus(order.lifecycle_status || order.status);
+                  const hebrewDate = order.date
+                    ? new Date(order.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' })
+                    : '—';
+                  return (
+                    <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="py-3.5 font-bold text-[#006d43] text-sm">#{order.order_id}</td>
+                      <td className="py-3.5 text-gray-700 font-medium text-sm">{order.buyer_name}</td>
+                      <td className="py-3.5 text-gray-400 text-sm">{hebrewDate}</td>
+                      <td className="py-3.5">
+                        <span className={cn(
+                          'text-xs px-3 py-1 rounded-lg font-bold',
+                          ORDER_STATUS_BADGE_CLASSES[orderStatus]
+                        )}>
+                          {ORDER_STATUS_LABELS[orderStatus]}
+                        </span>
+                      </td>
+                      <td className="py-3.5 font-bold text-gray-800 text-left text-sm">
+                        {order.amount ?? (order.total_price != null
+                          ? `${order.currency || 'USD'} ${order.total_price.toFixed(2)}`
+                          : '—')}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
