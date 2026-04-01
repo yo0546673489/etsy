@@ -1,0 +1,91 @@
+[
+  {
+    "shopId": "8",
+    "displayName": "חנות 1",
+    "profileId": "k16kmi55",
+    "status": "synced",
+    "activeSales": [
+      {
+        "name": "Shop-wide sale",
+        "discountPercent": 20,
+        "startDate": "01 Apr, 2026",
+        "endDate": "01 May, 2026",
+        "status": "active",
+        "promotionUrl": "https://www.etsy.com/your/shops/me/sales-discounts/promotion/1477342679135"
+      },
+      {
+        "name": "Shop-wide sale",
+        "discountPercent": 20,
+        "startDate": "01 Apr, 2026",
+        "endDate": "01 May, 2026",
+        "status": "active",
+        "promotionUrl": "https://www.etsy.com/your/shops/me/sales-discounts/promotion/1477341293585"
+      }
+    ],
+    "dbUpdates": [
+      "created rule: Shop-wide sale 20%"
+    ]
+  },
+  {
+    "shopId": "9",
+    "displayName": "חנות 2",
+    "profileId": "k16kmia3",
+    "status": "synced",
+    "activeSales": [
+      {
+        "name": "Shop-wide sale",
+        "discountPercent": 20,
+        "startDate": "Apr 1, 2026",
+        "endDate": "May 1, 2026",
+        "status": "active",
+        "promotionUrl": "https://www.etsy.com/your/shops/me/sales-discounts/promotion/1477360051185"
+      }
+    ],
+    "dbUpdates": [
+      "created rule: Shop-wide sale 20%"
+    ]
+  },
+  {
+    "shopId": "10",
+    "displayName": "חנות 3",
+    "profileId": "k16kmigb",
+    "status": "synced",
+    "activeSales": [
+      {
+        "name": "Shop-wide sale",
+        "discountPercent": 20,
+        "startDate": "Apr 1, 2026",
+        "endDate": "May 1, 2026",
+        "status": "active",
+        "promotionUrl": "https://www.etsy.com/your/shops/me/sales-discounts/promotion/1476188917184"
+      }
+    ],
+    "dbUpdates": [
+      "created rule: Shop-wide sale 20%"
+    ]
+  },
+  {
+    "shopId": "11",
+    "displayName": "חנות 4",
+    "profileId": "k16kmin5",
+    "status": "no_active_sales",
+    "activeSales": [],
+    "dbUpdates": []
+  },
+  {
+    "shopId": "12",
+    "displayName": "חנות 5",
+    "profileId": "k181379o",
+    "status": "no_active_sales",
+    "activeSales": [],
+    "dbUpdates": []
+  },
+  {
+    "shopId": "13",
+    "displayName": "חנות 7",
+    "profileId": "k17owe18",
+    "status": "no_active_sales",
+    "activeSales": [],
+    "dbUpdates": []
+  }
+]

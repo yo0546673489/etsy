@@ -473,15 +473,27 @@ async function main() {
         if (anyRule) {
           // עדכן/הפעל מחדש rule קיים
           const updates: string[] = [];
+          const parsedStart = mainSale.startDate ? new Date(mainSale.startDate) : null;
+          const parsedEnd   = mainSale.endDate   ? new Date(mainSale.endDate)   : null;
           await pool.query(
             `UPDATE discount_rules
              SET discount_value = $1,
-                 etsy_sale_name = COALESCE(etsy_sale_name, $2),
-                 status = 'active',
-                 is_active = true,
-                 updated_at = NOW()
-             WHERE id = $3`,
-            [mainSale.discountPercent ?? anyRule.discountValue, mainSale.name, anyRule.id]
+                 name           = CASE WHEN name IS NULL OR name = '' THEN $2 ELSE name END,
+                 etsy_sale_name = COALESCE($3, etsy_sale_name),
+                 start_date     = COALESCE($4, start_date),
+                 end_date       = COALESCE($5, end_date),
+                 status         = 'active',
+                 is_active      = true,
+                 updated_at     = NOW()
+             WHERE id = $6`,
+            [
+              mainSale.discountPercent ?? anyRule.discountValue,
+              mainSale.name ?? anyRule.name,
+              mainSale.name,
+              parsedStart?.toISOString() ?? null,
+              parsedEnd?.toISOString() ?? null,
+              anyRule.id,
+            ]
           ).catch((e: any) => log(`  ⚠️ DB update failed: ${e.message}`));
 
           updates.push(`rule ${anyRule.id}: discount=${mainSale.discountPercent}% status→active`);
