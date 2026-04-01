@@ -507,10 +507,16 @@ export default function DiscountsPage() {
   const handleTriggerRotation = async (rule: DiscountRule) => {
     try {
       const result = await discountsApi.triggerRotation(rule.id);
-      setRules(prev => prev.map(r => r.id === rule.id
-        ? { ...r, last_discount_percent: result.new_percent, next_rotation_at: result.next_rotation_at }
-        : r
-      ));
+      const ruleShopId = rule.shop_id ?? shopId;
+      if (ruleShopId) {
+        setRulesByShop(prev => ({
+          ...prev,
+          [ruleShopId]: (prev[ruleShopId] || []).map(r => r.id === rule.id
+            ? { ...r, last_discount_percent: result.new_percent, next_rotation_at: result.next_rotation_at }
+            : r
+          ),
+        }));
+      }
       showToast(`סבב הנחה הופעל — ${result.new_percent}% (${result.sale_name})`, 'success');
     } catch {
       showToast('שגיאה בהפעלת הסבב', 'error');
