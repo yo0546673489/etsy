@@ -373,6 +373,9 @@ function ProductsContent() {
               <table className="w-full table-fixed">
                 <thead>
                   <tr className="border-b border-[var(--border-color)]">
+                    <th className="text-right py-4 px-5 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-[8%] min-w-0">
+                      Listing ID
+                    </th>
                     <th className="text-left py-4 px-5 w-12 shrink-0">
                       <TableCheckbox
                         checked={selectedProducts.length === filteredProducts.length}
@@ -382,9 +385,6 @@ function ProductsContent() {
                         }
                         onChange={toggleSelectAll}
                       />
-                    </th>
-                    <th className="text-left py-4 px-5 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-[8%] min-w-0">
-                      Listing ID
                     </th>
                     <th className="text-left py-4 px-5 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-[22%] min-w-0">
                       {t('products.table.product')}
@@ -412,14 +412,14 @@ function ProductsContent() {
                       key={product.id}
                       className="border-b border-[var(--border-color)] hover:bg-[var(--background)] transition-colors"
                     >
+                      <td className="py-4 px-5 text-right text-sm font-mono text-[#006d43] font-semibold">
+                        {product.etsy_listing_id ?? '—'}
+                      </td>
                       <td className="py-4 px-5">
                         <TableCheckbox
                           checked={selectedProducts.includes(product.id)}
                           onChange={() => toggleSelect(product.id)}
                         />
-                      </td>
-                      <td className="py-4 px-5 text-[var(--text-muted)] text-sm font-mono">
-                        {product.etsy_listing_id ?? '—'}
                       </td>
                       <td className="py-4 px-5 min-w-0">
                         <div className="flex items-center gap-3 min-w-0">
