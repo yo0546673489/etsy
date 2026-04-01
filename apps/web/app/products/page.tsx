@@ -383,10 +383,10 @@ function ProductsContent() {
                         onChange={toggleSelectAll}
                       />
                     </th>
-                    <th className="text-left py-4 px-5 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-[4%] min-w-0">
-                      #
+                    <th className="text-left py-4 px-5 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-[8%] min-w-0">
+                      Listing ID
                     </th>
-                    <th className="text-left py-4 px-5 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-[24%] min-w-0">
+                    <th className="text-left py-4 px-5 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-[22%] min-w-0">
                       {t('products.table.product')}
                     </th>
                     <th className="text-left py-4 px-5 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-[8%] min-w-0">
@@ -407,7 +407,7 @@ function ProductsContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.map((product, index) => (
+                  {filteredProducts.map((product) => (
                     <tr
                       key={product.id}
                       className="border-b border-[var(--border-color)] hover:bg-[var(--background)] transition-colors"
@@ -418,8 +418,8 @@ function ProductsContent() {
                           onChange={() => toggleSelect(product.id)}
                         />
                       </td>
-                      <td className="py-4 px-5 text-[var(--text-muted)] text-sm font-medium">
-                        {(currentPage - 1) * pageSize + index + 1}
+                      <td className="py-4 px-5 text-[var(--text-muted)] text-sm font-mono">
+                        {product.etsy_listing_id ?? '—'}
                       </td>
                       <td className="py-4 px-5 min-w-0">
                         <div className="flex items-center gap-3 min-w-0">
