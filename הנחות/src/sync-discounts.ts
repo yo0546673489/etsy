@@ -63,6 +63,34 @@ async function closeProfile(profileId: string): Promise<void> {
   log(`  🔒 Profile ${profileId} closed`);
 }
 
+// ─── Single tab enforcement ───────────────────────────────────────────────────
+
+/**
+ * מוודא שיש רק tab אחד פתוח ב-context.
+ * אם יש כמה — סוגר את כולם חוץ מהראשון.
+ * אם אין אף אחד — פותח tab חדש.
+ */
+async function ensureSingleTab(context: any): Promise<any> {
+  const pages = context.pages() as any[];
+  if (pages.length === 0) {
+    const page = await context.newPage();
+    await new Promise(r => setTimeout(r, 1500));
+    log(`  📄 Opened new tab (no existing tabs)`);
+    return page;
+  }
+  // שמור את הראשון — סגור את כל השאר
+  const [keep, ...extras] = pages;
+  if (extras.length > 0) {
+    log(`  🗂️ Found ${pages.length} open tabs — closing ${extras.length} extra tab(s)`);
+    for (const p of extras) {
+      await p.close().catch(() => {});
+    }
+  }
+  await keep.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
+  log(`  🔗 Using tab: ${keep.url()}`);
+  return keep;
+}
+
 // ─── Login detection ─────────────────────────────────────────────────────────
 
 async function checkLoggedIn(page: any): Promise<boolean> {
@@ -398,18 +426,8 @@ async function main() {
       browser = await chromium.connectOverCDP(wsUrl, { timeout: 60000 });
       const context = browser.contexts()[0] || await browser.newContext();
 
-      // שתמש בדף קיים (שמירת session)
-      const existingPages = context.pages();
-      let page: any;
-      if (existingPages.length > 0) {
-        page = existingPages[0];
-        await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
-        log(`  🔗 Current page: ${page.url()}`);
-      } else {
-        page = await context.newPage();
-        await new Promise(r => setTimeout(r, 2000));
-        log(`  📄 Opened new page`);
-      }
+      // וודא שיש רק tab אחד פתוח
+      const page = await ensureSingleTab(context);
 
       // ── נווט לדף המבצעים ──
       await page.goto('https://www.etsy.com/your/shops/me/sales-discounts', {

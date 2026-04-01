@@ -6,6 +6,27 @@ import { AdsPowerController } from '../adspower/controller';
 import { EtsyDiscountManager, SaleConfig } from '../browser/etsyDiscountManager';
 import { logger } from '../utils/logger';
 
+/** וודא שיש רק tab אחד פתוח — סגור extras, שמור ראשון */
+async function ensureSingleTab(context: any): Promise<any> {
+  const pages = context.pages() as any[];
+  if (pages.length === 0) {
+    const page = await context.newPage();
+    await new Promise(r => setTimeout(r, 1500));
+    logger.info('Opened new tab (no existing tabs)');
+    return page;
+  }
+  const [keep, ...extras] = pages;
+  if (extras.length > 0) {
+    logger.info(`Found ${pages.length} open tabs — closing ${extras.length} extra tab(s)`);
+    for (const p of extras) {
+      await p.close().catch(() => {});
+    }
+  }
+  await keep.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
+  logger.info(`Using tab: ${keep.url()}`);
+  return keep;
+}
+
 interface DiscountJob {
   taskId: number;           // ID מטבלת discount_tasks (etsy_messages)
   storeId: number;
@@ -74,19 +95,8 @@ export function createDiscountWorker(pool: Pool, platformPool?: Pool) {
       try {
         browser = await chromium.connectOverCDP(browserInfo.ws.puppeteer, { timeout: 60000 });
         const context = browser.contexts()[0] || await browser.newContext();
-        // השתמש בדף קיים (כדי לשמור על session של AdsPower), אחרת פתח חדש
-        const existingPages = context.pages();
-        let page;
-        if (existingPages.length > 0) {
-          page = existingPages[0];
-          // המתן לסיום ניווט קיים
-          await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
-          logger.info(`Reusing existing page: ${page.url()}`);
-        } else {
-          page = await context.newPage();
-          await new Promise(r => setTimeout(r, 2000));
-          logger.info('Created new page (no existing pages found)');
-        }
+        // וודא שיש רק tab אחד פתוח
+        const page = await ensureSingleTab(context);
 
         const discountManager = new EtsyDiscountManager(page);
 
