@@ -16,6 +16,7 @@ import { chromium } from 'playwright';
 import { Pool } from 'pg';
 import axios from 'axios';
 import * as fs from 'fs';
+import { HumanBehavior } from './browser/humanBehavior';
 
 const PLATFORM_DB = 'postgresql://postgres:postgres_dev_password@185.241.4.225:5433/etsy_platform';
 const ADSPOWER_URL = 'http://127.0.0.1:50325';
@@ -61,6 +62,76 @@ async function closeProfile(profileId: string): Promise<void> {
     timeout: 10000,
   }).catch(() => {});
   log(`  🔒 Profile ${profileId} closed`);
+}
+
+// ─── Human warmup before navigating to target page ───────────────────────────
+
+const WARMUP_PAGES = [
+  'https://www.etsy.com',
+  'https://www.etsy.com/your/shops/me',
+  'https://www.etsy.com/your/shops/me/listings',
+  'https://www.etsy.com/your/shops/me/orders',
+];
+
+/**
+ * מבצע פעולות אנושיות לפני ניווט לדף היעד:
+ * - נווט לדף ביניים אקראי (לא ישר לדף ההנחות)
+ * - גלול מעט
+ * - הזז עכבר
+ * - המתן זמן קריאה אקראי
+ * - רק אז נווט לדף היעד
+ */
+async function humanWarmupThenNavigate(page: any, targetUrl: string): Promise<void> {
+  const human = new HumanBehavior(page);
+  const r = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+  const currentUrl = page.url();
+
+  // אם כבר בדף היעד — רק גלול ואל תנווט שוב
+  if (currentUrl === targetUrl || currentUrl.includes('sales-discounts')) {
+    log(`  🏠 Already on target page — scrolling + pause`);
+    await human.humanScroll('down', r(100, 250));
+    await new Promise(res => setTimeout(res, r(1500, 3000)));
+    await human.randomMouseMovement();
+    return;
+  }
+
+  // 1. בחר דף ביניים אקראי
+  const warmupUrl = WARMUP_PAGES[r(0, WARMUP_PAGES.length - 1)];
+  log(`  🚶 Warmup: navigating to intermediate page: ${warmupUrl}`);
+
+  await page.goto(warmupUrl, { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});
+  await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+  await new Promise(res => setTimeout(res, r(1500, 3500)));
+
+  // 2. גלול מעט
+  await human.humanScroll('down', r(150, 400));
+  await new Promise(res => setTimeout(res, r(800, 2000)));
+
+  // 3. תנועת עכבר אקראית (תמיד, לא רק 30%)
+  await human.randomMouseMovement();
+  await new Promise(res => setTimeout(res, r(500, 1200)));
+
+  // 4. גלול חזרה קצת
+  if (Math.random() < 0.5) {
+    await human.humanScroll('up', r(50, 150));
+    await new Promise(res => setTimeout(res, r(400, 900)));
+  }
+
+  // 5. השהיה "חשיבה" לפני המעבר לדף היעד
+  const thinkMs = r(2000, 5000);
+  log(`  💭 Thinking for ${Math.round(thinkMs / 1000)}s before target page...`);
+  await new Promise(res => setTimeout(res, thinkMs));
+
+  // 6. נווט לדף היעד
+  log(`  🎯 Navigating to target: ${targetUrl}`);
+  await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(async (e: any) => {
+    log(`  ⚠️ Navigation failed: ${e.message} — retrying`);
+    await new Promise(res => setTimeout(res, 3000));
+    await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+  });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await new Promise(res => setTimeout(res, r(2000, 4000)));
 }
 
 // ─── Single tab enforcement ───────────────────────────────────────────────────
@@ -429,20 +500,8 @@ async function main() {
       // וודא שיש רק tab אחד פתוח
       const page = await ensureSingleTab(context);
 
-      // ── נווט לדף המבצעים ──
-      await page.goto('https://www.etsy.com/your/shops/me/sales-discounts', {
-        waitUntil: 'domcontentloaded',
-        timeout: 30000,
-      }).catch(async (e: any) => {
-        log(`  ⚠️ Navigation attempt 1 failed: ${e.message} — retrying`);
-        await new Promise(r => setTimeout(r, 3000));
-        await page.goto('https://www.etsy.com/your/shops/me/sales-discounts', {
-          waitUntil: 'domcontentloaded',
-          timeout: 30000,
-        }).catch(() => {});
-      });
-      await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-      await new Promise(r => setTimeout(r, 3000));
+      // ── נווט לדף המבצעים עם warmup אנושי ──
+      await humanWarmupThenNavigate(page, 'https://www.etsy.com/your/shops/me/sales-discounts');
 
       const currentUrl = page.url();
       log(`  🌐 URL: ${currentUrl}`);
