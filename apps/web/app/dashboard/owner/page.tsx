@@ -82,7 +82,7 @@ function OwnerDashboardContent() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { t } = useLanguage();
-  const { selectedShop, selectedShopIds } = useShop();
+  const { selectedShop, selectedShopIds, isLoading: shopLoading } = useShop();
   const { currency: displayCurrency, setCurrency } = useCurrency();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -127,8 +127,8 @@ function OwnerDashboardContent() {
         setLoading(false);
       }
     };
-    if (!showOnboarding) load();
-  }, [selectedShopIds, showOnboarding, dateRange, displayCurrency]);
+    if (!showOnboarding && !shopLoading) load();
+  }, [selectedShopIds, showOnboarding, dateRange, displayCurrency, shopLoading]);
 
   const handleCompleteOnboarding = async (shopName: string, description: string | null) => {
     await onboardingApi.complete(shopName, description);
