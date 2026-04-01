@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useShop } from '@/lib/shop-context';
 import { useToast } from '@/lib/toast-context';
 import { useLanguage } from '@/lib/language-context';
+import { useCurrency } from '@/lib/currency-context';
 import { DisconnectedShopBanner } from '@/components/ui/DisconnectedShopBanner';
 import {
   analyticsApi,
@@ -778,6 +779,7 @@ function AnalyticsContent() {
   const { selectedShop, selectedShopIds, selectedShops, isLoading: shopLoading } = useShop();
   const { showToast } = useToast();
   const { t } = useLanguage();
+  const { currency: displayCurrency } = useCurrency();
 
   const [overview, setOverview] = useState<OverviewAnalytics | null>(null);
   const [orders, setOrders] = useState<OrderAnalytics | null>(null);
@@ -800,9 +802,9 @@ function AnalyticsContent() {
     setLoading(true);
     try {
       const [overviewData, ordersData, productsData] = await Promise.all([
-        analyticsApi.getOverview(shopId, forceRefresh, shopIds, startDate, endDate),
-        analyticsApi.getOrders(shopId, forceRefresh, shopIds, startDate, endDate),
-        analyticsApi.getProducts(shopId, forceRefresh, shopIds, startDate, endDate),
+        analyticsApi.getOverview(shopId, forceRefresh, shopIds, startDate, endDate, displayCurrency),
+        analyticsApi.getOrders(shopId, forceRefresh, shopIds, startDate, endDate, displayCurrency),
+        analyticsApi.getProducts(shopId, forceRefresh, shopIds, startDate, endDate, displayCurrency),
       ]);
       setOverview(overviewData);
       setOrders(ordersData);
@@ -813,7 +815,7 @@ function AnalyticsContent() {
     } finally {
       setLoading(false);
     }
-  }, [shopId, shopIds, startDate, endDate, showToast, t]);
+  }, [shopId, shopIds, startDate, endDate, displayCurrency, showToast, t]);
 
   useEffect(() => {
     if (shopLoading) return;
@@ -845,7 +847,7 @@ function AnalyticsContent() {
             {t('analytics.title')}
           </h1>
           <p className="text-[var(--text-muted)] mt-1 text-sm">
-            {selectedShop ? `Performance overview for ${selectedShop.display_name}` : 'Performance overview'}
+            {selectedShop ? `${t('analytics.performanceOverview')} — ${selectedShop.display_name}` : t('analytics.performanceOverview')}
             <span className="ml-2 text-xs">— {t('analytics.clickCardDetails')}</span>
           </p>
         </div>
@@ -900,14 +902,6 @@ function AnalyticsContent() {
               </>
             )}
           </div>
-          <button
-            onClick={() => loadAnalytics(true)}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--card-bg)] border border-[var(--border-color)] text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--background)] transition disabled:opacity-50"
-          >
-            <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
-            {loading ? t('analytics.refreshing') : t('analytics.refresh')}
-          </button>
         </div>
       </div>
 
@@ -950,7 +944,7 @@ function AnalyticsContent() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Order status */}
           <ClickableCard>
-            <SectionHeader title={t('analytics.orderStatus')} subtitle={`${orderTotal} total orders`} />
+            <SectionHeader title={t('analytics.orderStatus')} subtitle={`${orderTotal} ${t('analytics.totalOrders').toLowerCase()}`} />
             <div className="space-y-4">
               <BarItem label={t('analytics.completed')} value={orders.status_breakdown.completed} total={orderTotal} color="bg-emerald-500" onClick={() => setDetailView({ kind: 'orders', statusFilter: 'completed' })} />
               <BarItem label={t('analytics.processing')} value={orders.status_breakdown.processing} total={orderTotal} color="bg-amber-500" onClick={() => setDetailView({ kind: 'orders', statusFilter: 'processing' })} />
@@ -962,7 +956,7 @@ function AnalyticsContent() {
 
           {/* Payment breakdown */}
           <ClickableCard>
-            <SectionHeader title={t('analytics.paymentStatus')} subtitle={`${paymentTotal} total orders`} />
+            <SectionHeader title={t('analytics.paymentStatus')} subtitle={`${paymentTotal} ${t('analytics.totalOrders').toLowerCase()}`} />
             <div className="grid grid-cols-2 gap-4 mb-6">
               <DonutStat
                 label={t('analytics.paid')}

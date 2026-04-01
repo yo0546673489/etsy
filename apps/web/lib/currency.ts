@@ -2,22 +2,24 @@
  * Currency formatting and conversion display helpers
  */
 
-/** Format cents as currency string using Intl.NumberFormat */
+/** Format cents as currency string — symbol always on the left */
 export function formatCents(cents: number, currency = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
+  const abs = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
-  }).format(cents / 100);
+  }).format(Math.abs(cents) / 100);
+  return cents < 0 ? `-${abs}` : abs;
 }
 
-/** Format dollars (already divided) as currency string */
+/** Format dollars (already divided) as currency string — symbol always on the left */
 export function formatAmount(amount: number, currency = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
+  const abs = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
-  }).format(amount);
+  }).format(Math.abs(amount));
+  return amount < 0 ? `-${abs}` : abs;
 }
 
 /** Get display value for a monetary amount - prefers converted when available */
@@ -44,7 +46,7 @@ export function formatWithConversion(
   if (convertedAmount != null && convertedCurrency && convertedCurrency !== currency) {
     return {
       primary: formatAmount(convertedAmount, convertedCurrency),
-      secondary: `${formatAmount(amount, currency)} (original)`,
+      secondary: formatAmount(amount, currency),
       stale: rateStale ?? false,
     };
   }

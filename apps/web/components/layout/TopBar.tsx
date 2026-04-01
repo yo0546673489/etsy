@@ -77,8 +77,8 @@ export function TopBar() {
   }, []);
 
   const languages = [
-    { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'he', name: 'עברית', flag: '🇮🇱' },
+    { code: 'en', name: 'English', flag: '🇺🇸', countryCode: 'US' },
+    { code: 'he', name: 'עברית', flag: '🇮🇱', countryCode: 'IL' },
   ];
 
   const currentLanguage = languages.find((lang) => lang.code === language) || languages[0];
@@ -242,7 +242,7 @@ export function TopBar() {
               title={t('topbar.changeLanguage')}
             >
               <Globe className="w-4 h-4 flex-shrink-0 text-slate-500 dark:text-slate-400" />
-              <span className="text-sm font-medium">{currentLanguage.code.toUpperCase()}</span>
+              <span className="text-sm font-medium">{currentLanguage.countryCode}</span>
               <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${showLanguageMenu ? 'rotate-180' : ''}`} />
             </button>
 

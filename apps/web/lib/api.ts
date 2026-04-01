@@ -1074,7 +1074,8 @@ function _analyticsParams(
   forceRefresh?: boolean,
   shopIds?: number[],
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  targetCurrency?: string
 ): URLSearchParams {
   const params = new URLSearchParams();
   if (shopIds && shopIds.length > 0) {
@@ -1085,6 +1086,7 @@ function _analyticsParams(
   if (forceRefresh) params.append('force_refresh', 'true');
   if (startDate) params.append('start_date', startDate);
   if (endDate) params.append('end_date', endDate);
+  if (targetCurrency) params.append('target_currency', targetCurrency);
   return params;
 }
 
@@ -1094,23 +1096,24 @@ export const analyticsApi = {
     forceRefresh?: boolean,
     shopIds?: number[],
     startDate?: string,
-    endDate?: string
+    endDate?: string,
+    targetCurrency?: string
   ): Promise<OverviewAnalytics> => {
     return apiRequest<OverviewAnalytics>(
-      `/api/analytics/overview?${_analyticsParams(shopId, forceRefresh, shopIds, startDate, endDate).toString()}`
+      `/api/analytics/overview?${_analyticsParams(shopId, forceRefresh, shopIds, startDate, endDate, targetCurrency).toString()}`
     );
   },
 
-  getOrders: async (shopId?: number, forceRefresh?: boolean, shopIds?: number[], startDate?: string, endDate?: string): Promise<OrderAnalytics> => {
-    return apiRequest<OrderAnalytics>(`/api/analytics/orders?${_analyticsParams(shopId, forceRefresh, shopIds, startDate, endDate).toString()}`);
+  getOrders: async (shopId?: number, forceRefresh?: boolean, shopIds?: number[], startDate?: string, endDate?: string, targetCurrency?: string): Promise<OrderAnalytics> => {
+    return apiRequest<OrderAnalytics>(`/api/analytics/orders?${_analyticsParams(shopId, forceRefresh, shopIds, startDate, endDate, targetCurrency).toString()}`);
   },
 
-  getProducts: async (shopId?: number, forceRefresh?: boolean, shopIds?: number[], startDate?: string, endDate?: string): Promise<ProductAnalytics> => {
-    return apiRequest<ProductAnalytics>(`/api/analytics/products?${_analyticsParams(shopId, forceRefresh, shopIds, startDate, endDate).toString()}`);
+  getProducts: async (shopId?: number, forceRefresh?: boolean, shopIds?: number[], startDate?: string, endDate?: string, targetCurrency?: string): Promise<ProductAnalytics> => {
+    return apiRequest<ProductAnalytics>(`/api/analytics/products?${_analyticsParams(shopId, forceRefresh, shopIds, startDate, endDate, targetCurrency).toString()}`);
   },
 
-  getFulfillment: async (shopId?: number, forceRefresh?: boolean, shopIds?: number[], startDate?: string, endDate?: string): Promise<FulfillmentAnalytics> => {
-    return apiRequest<FulfillmentAnalytics>(`/api/analytics/fulfillment?${_analyticsParams(shopId, forceRefresh, shopIds, startDate, endDate).toString()}`);
+  getFulfillment: async (shopId?: number, forceRefresh?: boolean, shopIds?: number[], startDate?: string, endDate?: string, targetCurrency?: string): Promise<FulfillmentAnalytics> => {
+    return apiRequest<FulfillmentAnalytics>(`/api/analytics/fulfillment?${_analyticsParams(shopId, forceRefresh, shopIds, startDate, endDate, targetCurrency).toString()}`);
   },
 
   invalidateCache: async (shopId?: number): Promise<{ message: string }> => {

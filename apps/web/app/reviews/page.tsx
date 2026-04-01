@@ -327,19 +327,6 @@ export default function ReviewsPage() {
               {selectedShop?.display_name || 'כל החנויות'} • {stats?.total_reviews || 0} ביקורות
             </p>
           </div>
-          <button
-            onClick={handleSync}
-            disabled={syncing || !selectedShop}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors',
-              syncing || !selectedShop
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-[#006d43] text-white hover:bg-[#005535]'
-            )}
-          >
-            <RefreshCw className={cn('w-4 h-4', syncing && 'animate-spin')} />
-            {syncing ? 'מסנכרן...' : 'סנכרן ביקורות'}
-          </button>
         </div>
 
         {loading ? (

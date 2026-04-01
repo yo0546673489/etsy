@@ -171,7 +171,7 @@ function OwnerDashboardContent() {
 
   const formatCurrencyWith = (amount: number, currencyCode: string) => {
     try {
-      const formatted = new Intl.NumberFormat('he-IL', {
+      const formatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: currencyCode,
         minimumFractionDigits: 2,
@@ -179,7 +179,7 @@ function OwnerDashboardContent() {
       }).format(Math.abs(amount));
       return amount < 0 ? `-${formatted}` : formatted;
     } catch {
-      const str = Math.abs(amount).toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const str = Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       return amount < 0 ? `-${currencyCode} ${str}` : `${currencyCode} ${str}`;
     }
   };

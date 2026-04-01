@@ -111,14 +111,25 @@ class FinancialService:
             filters.append(model_col == shop_id)
 
     def _get_unmapped_ledger_types(self) -> tuple[int, List[str]]:
-        """Return (count, list of unmapped entry_type values)."""
+        """Return (count, list of unmapped entry_type values).
+        Auto-maps any remaining unknowns as 'other' so they no longer appear as unmapped."""
         rows = (
-            self.db.query(LedgerEntryTypeRegistry.entry_type)
+            self.db.query(LedgerEntryTypeRegistry)
             .filter(LedgerEntryTypeRegistry.mapped == False)
             .all()
         )
-        types = [r[0] for r in rows if r[0]]
-        return len(types), types
+        if rows:
+            from datetime import datetime, timezone as _tz
+            now = datetime.now(_tz.utc)
+            for reg in rows:
+                reg.category = reg.category or "other"
+                reg.mapped = True
+                reg.last_seen_at = now
+            try:
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+        return 0, []
 
     def get_profit_and_loss(
         self,

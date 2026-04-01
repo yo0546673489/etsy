@@ -41,8 +41,8 @@ const METRIC_TABS: { key: Metric; label: string }[] = [
 /* ─── Format helpers ─────────────────────────────────────── */
 function fmt(val: number, metric: Metric): string {
   if (metric === 'revenue') {
-    if (val >= 1000) return `₪${(val / 1000).toFixed(1)}K`;
-    return `₪${val.toLocaleString('he-IL', { minimumFractionDigits: 0 })}`;
+    if (val >= 1000) return `$${(val / 1000).toFixed(1)}K`;
+    return `$${val.toLocaleString('en-US', { minimumFractionDigits: 0 })}`;
   }
   if (metric === 'conversion') return `${val.toFixed(1)}%`;
   if (val >= 1000) return `${(val / 1000).toFixed(1)}K`;

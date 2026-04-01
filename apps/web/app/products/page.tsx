@@ -303,7 +303,7 @@ function ProductsContent() {
             </div>
             <div className="flex items-center gap-3 flex-wrap min-w-0">
               <PageSizeDropdown value={pageSize} onChange={setPageSize} />
-              {isSupplier ? (
+              {isSupplier && (
                 <button
                   onClick={handleSyncFromCatalog}
                   disabled={refreshingCatalog}
@@ -311,17 +311,7 @@ function ProductsContent() {
                   title="Refresh products from catalog"
                 >
                   <Upload className="w-4 h-4" />
-                  {refreshingCatalog ? 'Refreshing...' : 'Sync from catalog'}
-                </button>
-              ) : (
-                <button
-                  onClick={handleSyncFromEtsy}
-                  disabled={(!selectedShopId && selectedShopIds.length === 0) || syncing}
-                  className="flex items-center gap-2 px-4 py-2.5 border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] hover:bg-[var(--background)] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                  title={t('products.syncEtsy')}
-                >
-                  <Upload className="w-4 h-4" />
-                  {syncing ? t('products.syncing') : t('products.syncEtsy')}
+                  {refreshingCatalog ? t('products.syncing') : t('products.syncEtsy')}
                 </button>
               )}
               <button
@@ -338,7 +328,7 @@ function ProductsContent() {
                   title="Export products with validation issues"
                 >
                   <Download className="w-4 h-4" />
-                  Export Problems
+                  {t('products.exportProblems')}
                 </button>
               )}
               <button
@@ -397,9 +387,6 @@ function ProductsContent() {
                       {t('products.table.product')}
                     </th>
                     <th className="text-left py-4 px-5 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-[8%] min-w-0">
-                      {t('products.table.source')}
-                    </th>
-                    <th className="text-left py-4 px-5 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-[8%] min-w-0">
                       {t('products.table.price')}
                     </th>
                     <th className="text-left py-4 px-5 text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider w-[8%] min-w-0">
@@ -450,11 +437,6 @@ function ProductsContent() {
                             </p>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-4 px-5">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--background)] text-[var(--text-secondary)] border border-[var(--border-color)]">
-                          {product.source || 'manual'}
-                        </span>
                       </td>
                       <td className="py-4 px-5 text-[var(--text-primary)] font-medium">
                         {product.price ? `$${(product.price / 100).toFixed(2)}` : '-'}

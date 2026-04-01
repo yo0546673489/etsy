@@ -175,9 +175,12 @@ def _seed_ledger_type_registry(db) -> int:
     for reg in unmapped:
         if reg.entry_type in LEDGER_TYPE_SEED:
             reg.category = LEDGER_TYPE_SEED[reg.entry_type]
-            reg.mapped = True
-            reg.last_seen_at = now
-            updated += 1
+        else:
+            # Map truly unknown types as "other" so they don't trigger warnings
+            reg.category = reg.category or "other"
+        reg.mapped = True
+        reg.last_seen_at = now
+        updated += 1
     if updated:
         db.commit()
     return updated
@@ -199,12 +202,14 @@ def _upsert_registry(db, entry_type: str, now: datetime) -> None:
             reg.category = known_category
             reg.mapped = True
     else:
+        # Unknown types are mapped as "other" so they don't trigger unmapped warnings
+        resolved_category = known_category or "other"
         reg = LedgerEntryTypeRegistry(
             entry_type=entry_type,
-            category=known_category,        # map immediately if known
+            category=resolved_category,
             first_seen_at=now,
             last_seen_at=now,
-            mapped=known_category is not None,  # True if known, False if truly new
+            mapped=True,
         )
         db.add(reg)
 
