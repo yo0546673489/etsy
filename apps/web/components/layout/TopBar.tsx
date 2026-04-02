@@ -174,7 +174,11 @@ export function TopBar() {
                     </div>
                   </div>
                   <div className="py-1 max-h-60 overflow-y-auto">
-                    {shops.map((shop) => {
+                    {[...shops].sort((a, b) => {
+                      const na = parseInt(a.display_name?.match(/\d+/)?.[0] ?? '0');
+                      const nb = parseInt(b.display_name?.match(/\d+/)?.[0] ?? '0');
+                      return na !== nb ? na - nb : (a.display_name ?? '').localeCompare(b.display_name ?? '');
+                    }).map((shop) => {
                       const isSelected = selectedShopIds.includes(shop.id);
                       const isDisconnected = shop.status === 'revoked' || (shop.status === 'connected' && shop.token_health?.has_token && !shop.token_health?.token_valid);
                       return (
@@ -186,20 +190,18 @@ export function TopBar() {
                                 setDisconnectedPromptShopId(shop.id);
                               }
                             }}
-                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-right transition-colors ${
                               isSelected
                                 ? 'bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200'
                                 : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
                             } ${isDisconnected ? 'opacity-60' : ''}`}
+                            dir="rtl"
                           >
-                            <span className={`font-medium truncate flex-1 ${isDisconnected ? 'line-through' : ''}`}>
+                            <span className={`font-medium truncate flex-1 text-right ${isDisconnected ? 'line-through' : ''}`}>
                               {shop.display_name || `Shop ${shop.id}`}
                             </span>
-                            {isDisconnected && (
-                              <span title="Disconnected"><WifiOff className="w-3.5 h-3.5 text-red-400 flex-shrink-0" /></span>
-                            )}
                             {isSelected && (
-                              <CheckCircle strokeWidth={1.5} className="ml-auto w-4 h-4 flex-shrink-0 text-slate-900 dark:text-slate-100" />
+                              <CheckCircle strokeWidth={1.5} className="w-4 h-4 flex-shrink-0 text-slate-900 dark:text-slate-100" />
                             )}
                           </button>
                           {disconnectedPromptShopId === shop.id && isDisconnected && (
