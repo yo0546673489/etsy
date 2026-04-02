@@ -17,6 +17,7 @@ import {
   MessageCircle,
   Tag,
   Settings,
+  Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/language-context';
@@ -39,6 +40,7 @@ const ownerNavItems: NavItem[] = [
   { name: 'ביקורות',        href: '/reviews',              icon: Star },
   { name: 'הנחות',          href: '/discounts',            icon: Tag },
   { name: 'הודעות',         href: '/messages',             icon: MessageCircle },
+  { name: 'אוטומציה',      href: '/automation',           icon: Activity },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -50,6 +52,7 @@ const adminNavItems: NavItem[] = [
   { name: 'ביקורות',        href: '/reviews',          icon: Star },
   { name: 'הנחות',          href: '/discounts',        icon: Tag },
   { name: 'הודעות',         href: '/messages',         icon: MessageCircle },
+  { name: 'אוטומציה',      href: '/automation',       icon: Activity },
 ];
 
 const supplierNavItems: NavItem[] = [

@@ -11,6 +11,7 @@ import { createMessageRoutes } from './routes/messages';
 import { createReplyRoutes } from './routes/replies';
 import { reviewRoutes } from './routes/reviews';
 import { discountRoutes } from './routes/discounts';
+import { createStatusRoutes } from './routes/status';
 import { logger } from '../utils/logger';
 
 export async function createApiServer(pool: Pool, jobQueue: JobQueue, resolver: StoreResolver) {
@@ -26,6 +27,7 @@ export async function createApiServer(pool: Pool, jobQueue: JobQueue, resolver: 
   await discountRoutes(fastify, pool, jobQueue.discountQueue, resolver);
 
   fastify.get('/api/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+  fastify.register(createStatusRoutes(pool, jobQueue), { prefix: '/api/status' });
 
   // Link preview endpoint for Etsy product cards (uses microlink.io headless browser)
   const previewCache = new Map<string, any>();

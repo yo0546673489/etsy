@@ -86,7 +86,15 @@ export class EmailListener {
 
         const store = await this.resolver.resolveByEmail(parsed.storeEmail);
         if (!store) {
-          logger.warn(`No store found for email: ${parsed.storeEmail}`);
+          logger.warn(`No store found for email: ${parsed.storeEmail} — marking as seen to prevent repeat processing`);
+          await this.client.messageFlagsAdd(uid, ['\\Seen']);
+          continue;
+        }
+
+        // Skip stores marked as needing re-authentication
+        if (store.status === 'needs_reauth') {
+          logger.warn(`Store ${store.id} (${parsed.storeEmail}) needs re-authentication — skipping sync`);
+          await this.client.messageFlagsAdd(uid, ['\\Seen']);
           continue;
         }
 
