@@ -23,6 +23,7 @@ import app.models  # noqa: F401 — register all models on Base.metadata for cre
 from app.api.endpoints import auth, shops, products, team, onboarding, dashboard, orders, notifications, audit, google_oauth, ingestion, audit_logs, webhooks, analytics, financials, user_preferences, currency
 from app.api.endpoints import admin as admin_endpoint
 from app.api.endpoints import messaging_activation as messaging_activation_endpoint
+from app.api.endpoints.control_panel import router as cp_router
 from app.api.endpoints import metrics as metrics_endpoint
 from app.middleware.tenant_context import TenantContextMiddleware
 from app.middleware.metrics_middleware import MetricsMiddleware
@@ -243,6 +244,7 @@ class SlashNormalizerMiddleware:
 
 # Include API routers
 app.include_router(admin_endpoint.router, prefix="/api/admin", tags=["admin"])
+app.include_router(cp_router, prefix="/api/cp", tags=["control-panel"])
 app.include_router(
     messaging_activation_endpoint.router,
     prefix="/api/messaging",

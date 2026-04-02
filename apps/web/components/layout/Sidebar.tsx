@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/language-context';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth, useFeatureAccess } from '@/lib/auth-context';
 import { useShop } from '@/lib/shop-context';
 import { shopsApi } from '@/lib/api';
 
@@ -29,6 +29,7 @@ interface NavItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  feature?: 'messages' | 'discounts' | 'automations';
 }
 
 const ownerNavItems: NavItem[] = [
@@ -38,9 +39,9 @@ const ownerNavItems: NavItem[] = [
   { name: 'nav.analytics',  href: '/analytics',        icon: BarChart3 },
   { name: 'nav.financials', href: '/financials',       icon: Wallet },
   { name: 'ביקורות',        href: '/reviews',              icon: Star },
-  { name: 'הנחות',          href: '/discounts',            icon: Tag },
-  { name: 'הודעות',         href: '/messages',             icon: MessageCircle },
-  { name: 'אוטומציה',      href: '/automation',           icon: Activity },
+  { name: 'הנחות',          href: '/discounts',            icon: Tag,           feature: 'discounts' },
+  { name: 'הודעות',         href: '/messages',             icon: MessageCircle, feature: 'messages' },
+  { name: 'אוטומציה',      href: '/automation',           icon: Activity,      feature: 'automations' },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -50,9 +51,9 @@ const adminNavItems: NavItem[] = [
   { name: 'nav.analytics',  href: '/analytics',        icon: BarChart3 },
   { name: 'nav.financials', href: '/financials',       icon: Wallet },
   { name: 'ביקורות',        href: '/reviews',          icon: Star },
-  { name: 'הנחות',          href: '/discounts',        icon: Tag },
-  { name: 'הודעות',         href: '/messages',         icon: MessageCircle },
-  { name: 'אוטומציה',      href: '/automation',       icon: Activity },
+  { name: 'הנחות',          href: '/discounts',        icon: Tag,           feature: 'discounts' },
+  { name: 'הודעות',         href: '/messages',         icon: MessageCircle, feature: 'messages' },
+  { name: 'אוטומציה',      href: '/automation',       icon: Activity,      feature: 'automations' },
 ];
 
 const supplierNavItems: NavItem[] = [
@@ -83,8 +84,17 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const { selectedShop } = useShop();
   const [copyState, setCopyState] = useState<'idle' | 'loading' | 'copied'>('idle');
+  const featureAccess = useFeatureAccess();
 
-  const navItems = getNavItems(user?.role);
+  const featureAllowed = (feature?: 'messages' | 'discounts' | 'automations') => {
+    if (!feature) return true;
+    if (feature === 'messages') return featureAccess.hasMessages;
+    if (feature === 'discounts') return featureAccess.hasDiscounts;
+    if (feature === 'automations') return featureAccess.hasAutomations;
+    return true;
+  };
+
+  const navItems = getNavItems(user?.role).filter(item => featureAllowed(item.feature));
 
   const handleLogout = async () => {
     await logout();

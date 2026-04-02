@@ -54,6 +54,8 @@ export interface AuthResponse {
     description?: string | null;
     onboarding_completed?: boolean;
     messaging_access?: string;
+    discounts_access?: string;
+    automations_access?: string;
   };
 }
 
@@ -69,6 +71,10 @@ export interface User {
   onboarding_completed?: boolean;
   /** Tenant messaging automation gate: only 'approved' may use messaging features */
   messaging_access?: string;
+  /** Tenant discounts feature gate */
+  discounts_access?: string;
+  /** Tenant automations feature gate */
+  automations_access?: string;
 }
 
 export interface TokenHealth {

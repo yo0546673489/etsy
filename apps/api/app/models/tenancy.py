@@ -41,6 +41,18 @@ class Tenant(Base):
         default='none',
         nullable=False,
     )
+    discounts_access = Column(
+        String(20),
+        CheckConstraint("discounts_access IN ('none', 'pending', 'approved', 'denied')"),
+        default='none',
+        nullable=False,
+    )
+    automations_access = Column(
+        String(20),
+        CheckConstraint("automations_access IN ('none', 'pending', 'approved', 'denied')"),
+        default='none',
+        nullable=False,
+    )
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     

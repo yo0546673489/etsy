@@ -140,6 +140,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         tenant_description: response.tenant.description,
         onboarding_completed: response.tenant.onboarding_completed,
         messaging_access: response.tenant.messaging_access ?? 'none',
+        discounts_access: response.tenant.discounts_access ?? 'none',
+        automations_access: response.tenant.automations_access ?? 'none',
       };
 
       // Cookies are set by the backend response — just update React state
@@ -191,6 +193,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         tenant_description: response.tenant.description,
         onboarding_completed: response.tenant.onboarding_completed,
         messaging_access: response.tenant.messaging_access ?? 'none',
+        discounts_access: response.tenant.discounts_access ?? 'none',
+        automations_access: response.tenant.automations_access ?? 'none',
       });
 
       // Post-registration onboarding (new users always see onboarding)
@@ -241,6 +245,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         tenant_description: response.tenant.description,
         onboarding_completed: response.tenant.onboarding_completed,
         messaging_access: response.tenant.messaging_access ?? 'none',
+        discounts_access: response.tenant.discounts_access ?? 'none',
+        automations_access: response.tenant.automations_access ?? 'none',
       });
 
       // Post-login onboarding for new users
@@ -346,6 +352,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useFeatureAccess() {
+  const { user } = useAuth();
+  const tenant = (user as any) || {};
+  return {
+    hasMessages: tenant.messaging_access === 'approved',
+    hasDiscounts: tenant.discounts_access === 'approved',
+    hasAutomations: tenant.automations_access === 'approved',
+  };
 }
 
 export function useAuth() {

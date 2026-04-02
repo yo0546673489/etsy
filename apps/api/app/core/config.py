@@ -102,6 +102,9 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3002",
     ]
 
+    # Control Panel secret (used for /api/cp/* session authentication)
+    CONTROL_PANEL_SECRET: str = ""
+
     # Super-admin portal (Next.js on :3002); used for CSRF trusted origins in dev
     ADMIN_PORTAL_SECRET: str = ""
     CSRF_TRUSTED_ORIGINS: List[str] = []

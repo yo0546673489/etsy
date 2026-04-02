@@ -258,6 +258,8 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
             "name": tenant.name,
             "role": "owner",
             "messaging_access": getattr(tenant, "messaging_access", "none"),
+            "discounts_access": getattr(tenant, "discounts_access", "none"),
+            "automations_access": getattr(tenant, "automations_access", "none"),
         },
         access_token=access_token,
         refresh_token=refresh_tok,
@@ -408,6 +410,8 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
             "description": tenant.description,
             "onboarding_completed": tenant.onboarding_completed,
             "messaging_access": getattr(tenant, "messaging_access", "none"),
+            "discounts_access": getattr(tenant, "discounts_access", "none"),
+            "automations_access": getattr(tenant, "automations_access", "none"),
         },
         access_token=access_token,
         refresh_token=refresh_tok,
@@ -523,6 +527,8 @@ async def get_current_user_info(current_user = Depends(get_current_user), db: Se
         "role": current_user["role"],
         "onboarding_completed": tenant.onboarding_completed if tenant else False,
         "messaging_access": getattr(tenant, "messaging_access", "none") if tenant else "none",
+        "discounts_access": getattr(tenant, "discounts_access", "none") if tenant else "none",
+        "automations_access": getattr(tenant, "automations_access", "none") if tenant else "none",
     }
 
 
@@ -1011,6 +1017,8 @@ async def google_oauth(
             "description": tenant.description,
             "onboarding_completed": tenant.onboarding_completed,
             "messaging_access": getattr(tenant, "messaging_access", "none"),
+            "discounts_access": getattr(tenant, "discounts_access", "none"),
+            "automations_access": getattr(tenant, "automations_access", "none"),
         }
     )
     response = JSONResponse(content=body.model_dump())
