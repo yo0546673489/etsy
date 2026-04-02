@@ -323,64 +323,85 @@ class FinancialService:
         ) or 0
 
         # ── available_for_deposit calculation ──────────────────────────
-        # Algorithm:
-        #   1. Detect clearing period by measuring how long payments sit before
-        #      a DISBURSE2 (bank deposit) follows them. We pair each PAYMENT_GROSS
-        #      with the next DISBURSE2 and record the gap. The MAX observed gap
-        #      is our clearing_period_days (conservative — avoids over-reporting).
-        #   2. available = max(0, balance − sum of PAYMENT_GROSS newer than
-        #      clearing_period_days).  Payments still in that window are frozen;
-        #      everything older has cleared and is ready for the next deposit.
-        #   3. If there is no DISBURSE2 history (brand-new shop) we default to
-        #      14 days (Etsy's standard clearing window for new accounts).
+        # IMPORTANT: Must be computed PER-SHOP and then summed.
+        # Mixing DISBURSE2 from shop A with PAYMENT_GROSS from shop B produces
+        # a wrong clearing-period estimate.  We loop over each individual shop
+        # and aggregate the results.
         now = datetime.now(timezone.utc)
         look_back = now - timedelta(days=120)
 
-        # Fetch recent PAYMENT_GROSS entries (sorted ascending so we can scan)
-        payment_rows = (
-            self.db.query(LedgerEntry.entry_created_at, LedgerEntry.amount)
-            .filter(and_(*filters))
-            .filter(LedgerEntry.entry_type == "PAYMENT_GROSS")
-            .filter(LedgerEntry.entry_created_at >= look_back)
-            .order_by(LedgerEntry.entry_created_at.asc())
-            .all()
-        )
+        def _available_for_one_shop(tid: int, sid: int) -> int:
+            """Compute available_for_deposit (cents) for a single shop."""
+            shop_filter = [
+                LedgerEntry.tenant_id == tid,
+                LedgerEntry.shop_id == sid,
+            ]
 
-        # Fetch DISBURSE2 entries (sorted ascending)
-        disburse_rows = (
-            self.db.query(LedgerEntry.entry_created_at)
-            .filter(and_(*filters))
-            .filter(LedgerEntry.entry_type.in_(["DISBURSE2", "DISBURSE"]))
-            .filter(LedgerEntry.entry_created_at >= look_back)
-            .order_by(LedgerEntry.entry_created_at.asc())
-            .all()
-        )
-        disburse_dates = [r[0] for r in disburse_rows]
+            payment_rows = (
+                self.db.query(LedgerEntry.entry_created_at, LedgerEntry.amount)
+                .filter(and_(*shop_filter))
+                .filter(LedgerEntry.entry_type == "PAYMENT_GROSS")
+                .filter(LedgerEntry.entry_created_at >= look_back)
+                .order_by(LedgerEntry.entry_created_at.asc())
+                .all()
+            )
 
-        # Detect clearing period: for each payment, find the next DISBURSE2
-        clearing_gaps = []
-        for payment_date, _ in payment_rows:
-            next_d = next((d for d in disburse_dates if d > payment_date), None)
-            if next_d:
-                gap = (next_d - payment_date).days
-                if 1 <= gap <= 45:  # sanity: Etsy clearing is 1-45 days
-                    clearing_gaps.append(gap)
+            disburse_dates = [
+                r[0] for r in (
+                    self.db.query(LedgerEntry.entry_created_at)
+                    .filter(and_(*shop_filter))
+                    .filter(LedgerEntry.entry_type.in_(["DISBURSE2", "DISBURSE"]))
+                    .filter(LedgerEntry.entry_created_at >= look_back)
+                    .order_by(LedgerEntry.entry_created_at.asc())
+                    .all()
+                )
+            ]
 
-        if clearing_gaps:
-            # Use the maximum observed gap so we never over-report
-            clearing_period_days = max(clearing_gaps)
+            # Detect clearing period from PAYMENT_GROSS→DISBURSE2 gaps
+            clearing_gaps = []
+            for payment_date, _ in payment_rows:
+                next_d = next((d for d in disburse_dates if d > payment_date), None)
+                if next_d:
+                    gap = (next_d - payment_date).days
+                    if 1 <= gap <= 45:
+                        clearing_gaps.append(gap)
+
+            clearing_period_days = max(clearing_gaps) if clearing_gaps else 14
+
+            # Balance for this shop
+            shop_balance = (
+                self.db.query(func.coalesce(func.sum(LedgerEntry.amount), 0))
+                .filter(and_(*shop_filter))
+                .scalar()
+            ) or 0
+
+            # Payments still in clearing window
+            clearing_cutoff = now - timedelta(days=clearing_period_days)
+            in_clearing = sum(
+                amt for dt, amt in payment_rows if dt >= clearing_cutoff
+            )
+
+            return max(0, shop_balance - in_clearing)
+
+        # Determine which shops to iterate over
+        all_shop_ids: List[int] = []
+        if shop_ids:
+            all_shop_ids = list(shop_ids)
+        elif shop_id:
+            all_shop_ids = [shop_id]
         else:
-            # No DISBURSE2 history yet → use Etsy's default clearing window
-            clearing_period_days = 14
+            # No specific shops requested → find all shops for this tenant
+            rows = (
+                self.db.query(LedgerEntry.shop_id)
+                .filter(LedgerEntry.tenant_id == tenant_id)
+                .distinct()
+                .all()
+            )
+            all_shop_ids = [r[0] for r in rows if r[0] is not None]
 
-        # Sum payments still inside the clearing window
-        clearing_cutoff = now - timedelta(days=clearing_period_days)
-        in_clearing = sum(
-            amount for payment_date, amount in payment_rows
-            if payment_date >= clearing_cutoff
+        available_for_deposit = sum(
+            _available_for_one_shop(tenant_id, sid) for sid in all_shop_ids
         )
-
-        available_for_deposit = max(0, current_balance - in_clearing)
 
         result = {
             "current_balance": current_balance,
