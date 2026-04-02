@@ -671,16 +671,20 @@ async function main() {
         } else {
           // צור rule חדש רק אם אין שום rule לחנות הזו
           const saleName = mainSale.name || `SALE_SYNCED_${id}`;
+          const parsedStartNew = mainSale.startDate ? new Date(mainSale.startDate) : null;
+          const parsedEndNew   = mainSale.endDate   ? new Date(mainSale.endDate)   : null;
           const insertRes = await pool.query(`
             INSERT INTO discount_rules
-              (shop_id, name, discount_type, discount_value, scope, etsy_sale_name, status, is_active, created_at, updated_at)
-            VALUES ($1, $2, 'percentage', $3, 'entire_shop', $4, 'active', true, NOW(), NOW())
+              (shop_id, name, discount_type, discount_value, scope, etsy_sale_name, status, is_active, start_date, end_date, created_at, updated_at)
+            VALUES ($1, $2, 'percentage', $3, 'entire_shop', $4, 'active', true, $5, $6, NOW(), NOW())
             RETURNING id
           `, [
             id,
             `מבצע פעיל - ${displayName}`,
             mainSale.discountPercent ?? 0,
             saleName,
+            parsedStartNew?.toISOString() ?? null,
+            parsedEndNew?.toISOString() ?? null,
           ]).catch((e: any) => {
             log(`  ⚠️ Failed to create rule: ${e.message}`);
             return null;
