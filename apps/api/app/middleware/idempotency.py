@@ -36,6 +36,7 @@ EXEMPT_PATH_PREFIXES = (
     "/api/shops/connect-link/",
     "/api/admin/",
     "/api/messaging/",
+    "/api/cp/",
 )
 
 
