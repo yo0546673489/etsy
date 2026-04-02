@@ -69,32 +69,49 @@ export class EmailListener {
   }
 
   private async processNewEmails(): Promise<void> {
-    const unseenMessages = await this.client.search({ seen: false }) as number[];
-    if (!Array.isArray(unseenMessages) || unseenMessages.length === 0) return;
+    // ⚠️ MUST use { uid: true } — sequence numbers shift when new messages arrive,
+    //    causing messageFlagsAdd to mark the wrong message. UIDs are stable.
+    const uids = await this.client.search({ seen: false }, { uid: true }) as number[];
+    if (!Array.isArray(uids) || uids.length === 0) return;
 
-    logger.info(`Found ${unseenMessages.length} new emails`);
+    logger.info(`Found ${uids.length} new emails (UIDs: ${uids.slice(0, 5).join(',')})${uids.length > 5 ? '...' : ''}`);
 
-    for (const uid of unseenMessages) {
+    for (const uid of uids) {
       try {
-        const message = await this.client.fetchOne(uid, { source: true, envelope: true });
-        if (!message) continue;
-
-        const parsed = await this.parser.parse(message.source as Buffer);
-        if (!parsed || !parsed.isEtsyNotification) continue;
-
-        logger.info(`Etsy notification for store: ${parsed.storeEmail}, buyer: ${parsed.buyerName}`);
-
-        const store = await this.resolver.resolveByEmail(parsed.storeEmail);
-        if (!store) {
-          logger.warn(`No store found for email: ${parsed.storeEmail} — marking as seen to prevent repeat processing`);
-          await this.client.messageFlagsAdd(uid, ['\\Seen']);
+        const message = await this.client.fetchOne(`${uid}`, { source: true, envelope: true }, { uid: true });
+        if (!message) {
+          await this.client.messageFlagsAdd(`${uid}`, ['\\Seen'], { uid: true });
           continue;
         }
 
-        // Skip stores marked as needing re-authentication
+        const parsed = await this.parser.parse(message.source as Buffer);
+
+        // Always mark as seen FIRST (before processing) — stable UID ensures correct message.
+        await this.client.messageFlagsAdd(`${uid}`, ['\\Seen'], { uid: true });
+
+        if (!parsed || !parsed.isEtsyNotification) {
+          logger.debug(`[Email] UID=${uid} — not an Etsy message notification, skipped`);
+          continue;
+        }
+
+        // ── פרוט מלא של כל אימייל שהגיע ──────────────────────────────────
+        logger.info(
+          `[Email] UID=${uid} | ` +
+          `נמסר ל: ${parsed.storeEmail} | ` +
+          `קונה: ${parsed.buyerName} | ` +
+          `נושא: ${parsed.subject} | ` +
+          `קישור: ${parsed.conversationLink} | ` +
+          `הגיע: ${parsed.receivedAt.toISOString()}`
+        );
+
+        const store = await this.resolver.resolveByEmail(parsed.storeEmail);
+        if (!store) {
+          logger.warn(`[Email] לא נמצאה חנות עבור: ${parsed.storeEmail}`);
+          continue;
+        }
+
         if (store.status === 'needs_reauth') {
-          logger.warn(`Store ${store.id} (${parsed.storeEmail}) needs re-authentication — skipping sync`);
-          await this.client.messageFlagsAdd(uid, ['\\Seen']);
+          logger.warn(`[Email] חנות ${store.id} (${parsed.storeEmail}) דורשת התחברות מחדש — מדולג`);
           continue;
         }
 
@@ -106,9 +123,10 @@ export class EmailListener {
           storeEmail: parsed.storeEmail,
         });
 
-        await this.client.messageFlagsAdd(uid, ['\\Seen']);
+        logger.info(`[Listener] ✅ תור סנכרון נוסף — חנות ${store.id}, קונה: ${parsed.buyerName}`);
       } catch (error) {
-        logger.error(`Error processing email UID ${uid}`, error);
+        logger.error(`[Email] שגיאה בעיבוד UID ${uid}`, error);
+        try { await this.client.messageFlagsAdd(`${uid}`, ['\\Seen'], { uid: true }); } catch {}
       }
     }
   }
