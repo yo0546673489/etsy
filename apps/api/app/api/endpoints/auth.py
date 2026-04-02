@@ -28,6 +28,25 @@ from app.models.oauth import OAuthProvider
 from jose.exceptions import JWTError, ExpiredSignatureError
 
 router = APIRouter()
+
+
+def _trigger_login_sync(tenant_id: int, db) -> None:
+    """Fire background Celery tasks to refresh all data for every connected shop on login."""
+    try:
+        from app.worker.tasks.product_sync_tasks import sync_products_from_etsy
+        from app.worker.tasks.financial_tasks import sync_ledger_entries, sync_payment_details
+        from app.worker.tasks.order_tasks import sync_orders
+        connected_shops = db.query(Shop).filter(
+            Shop.tenant_id == tenant_id,
+            Shop.status == 'connected'
+        ).all()
+        for shop in connected_shops:
+            sync_products_from_etsy.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
+            sync_orders.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
+            sync_ledger_entries.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
+            sync_payment_details.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
+    except Exception:
+        pass  # Never block login due to sync failure
 logger = logging.getLogger(__name__)
 
 
@@ -394,20 +413,8 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
         refresh_token=refresh_tok,
     )
 
-    # Trigger on-login sync for all connected shops (products, ledger, payments)
-    try:
-        from app.worker.tasks.product_sync_tasks import sync_products_from_etsy
-        from app.worker.tasks.financial_tasks import sync_ledger_entries, sync_payment_details
-        connected_shops = db.query(Shop).filter(
-            Shop.tenant_id == membership.tenant_id,
-            Shop.status == 'connected'
-        ).all()
-        for shop in connected_shops:
-            sync_products_from_etsy.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
-            sync_ledger_entries.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
-            sync_payment_details.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
-    except Exception:
-        pass  # Never block login due to sync failure
+    # Trigger on-login sync for all connected shops (products, orders, ledger, payments)
+    _trigger_login_sync(membership.tenant_id, db)
 
     response = JSONResponse(content=body.model_dump())
     set_auth_cookies(response, access_token, refresh_tok)
@@ -983,6 +990,9 @@ async def google_oauth(
 
     # Log successful authentication
     logger.info(f"Google OAuth successful: user_id={user.id}, is_new={is_new_user}, tenant_id={tenant.id}")
+
+    # Trigger on-login sync for all connected shops
+    _trigger_login_sync(membership.tenant_id, db)
 
     body = TokenResponse(
         expires_in=settings.JWT_TTL_SECONDS,
