@@ -159,7 +159,8 @@ function OwnerDashboardContent() {
   const payoutAmountRaw   = stats.available_for_payout || 0;
   // Use converted amount if server returned one (e.g. USD shop → ILS display)
   const payoutAmount      = convertedPayoutAmount !== null ? convertedPayoutAmount : payoutAmountRaw;
-  const depositAmount     = stats.available_for_deposit;   // null = unknown
+  const depositAmountRaw  = stats.available_for_deposit;
+  const depositAmount     = stats.display_deposit_amount ?? depositAmountRaw;  // prefer converted
   const payoutLabel       = stats.payout_label || 'יתרה נוכחית';
   const totalOrders       = stats.total_orders || 0;
   const totalViews        = stats.total_views || 0;
@@ -238,7 +239,7 @@ function OwnerDashboardContent() {
           iconBg="bg-purple-50"
           iconColor="text-purple-500"
           label="כסף משוחרר לבנק"
-          value={formatCurrency(depositAmount ?? 0)}
+          value={formatCurrencyWith(depositAmount ?? 0, convertedPayoutCurrency || shopCurrency)}
         />
         {/* 3rd: מספר הזמנות */}
         <StatCard

@@ -872,6 +872,7 @@ export interface DashboardStats {
   payout_currency?: string;
   payout_label?: string;
   display_amount?: number | null;
+  display_deposit_amount?: number | null;
   display_currency?: string | null;
   date_filtered?: boolean;
   changes: {

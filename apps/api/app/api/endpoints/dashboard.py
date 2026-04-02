@@ -234,17 +234,23 @@ async def get_dashboard_stats(
 
     # ── Currency conversion for display ────────────────────────────────
     display_amount = None
+    display_deposit_amount = None
     display_currency_out = None
     if display_currency:
         target_ccy = display_currency.upper().strip()
-        if target_ccy in SUPPORTED_CURRENCIES and target_ccy != payout_currency and available_for_payout is not None:
+        if target_ccy in SUPPORTED_CURRENCIES and target_ccy != payout_currency:
             try:
-                amount_cents = int(round(available_for_payout * 100))
-                converted_cents, _rate, _retrieved, _stale = convert_amount(
-                    amount_cents, payout_currency, target_ccy, db=db
-                )
-                display_amount = converted_cents / 100
-                display_currency_out = target_ccy
+                if available_for_payout is not None:
+                    amount_cents = int(round(available_for_payout * 100))
+                    converted_cents, _rate, _retrieved, _stale = convert_amount(
+                        amount_cents, payout_currency, target_ccy, db=db
+                    )
+                    display_amount = converted_cents / 100
+                    display_currency_out = target_ccy
+                if available_for_deposit is not None:
+                    dep_cents = int(round(available_for_deposit * 100))
+                    conv_dep, _, _, _ = convert_amount(dep_cents, payout_currency, target_ccy, db=db)
+                    display_deposit_amount = conv_dep / 100
             except Exception:
                 pass
 
@@ -262,6 +268,7 @@ async def get_dashboard_stats(
         "payout_currency": payout_currency,
         "payout_label": payout_label,
         "display_amount": display_amount,
+        "display_deposit_amount": display_deposit_amount,
         "display_currency": display_currency_out,
         "date_filtered": date_filtered,
         "changes": {
