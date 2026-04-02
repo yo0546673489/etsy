@@ -322,11 +322,68 @@ class FinancialService:
             .scalar()
         ) or 0
 
+        # ── available_for_deposit calculation ──────────────────────────
+        # Logic mirrors Etsy's deposit scheduling:
+        # 1. If the shop has DISBURSE2 history → detect deposit frequency,
+        #    compute next deposit date. If we're within 3 days of it, compute
+        #    available = balance − payments still in the 3-day clearing window.
+        #    Otherwise the next deposit isn't scheduled yet → available = 0.
+        # 2. If no DISBURSE2 history (new shop) → always use balance −
+        #    3-day clearing heuristic (Etsy prepares first deposit soon).
+        now = datetime.now(timezone.utc)
+        disburse_dates = (
+            self.db.query(LedgerEntry.entry_created_at)
+            .filter(and_(*filters))
+            .filter(LedgerEntry.entry_type.in_(["DISBURSE2", "DISBURSE"]))
+            .order_by(LedgerEntry.entry_created_at.desc())
+            .limit(10)
+            .all()
+        )
+        disburse_dates = [r[0] for r in disburse_dates]
+
+        def _pending_credits(base_filters):
+            cutoff = now - timedelta(days=3)
+            f = list(base_filters) + [
+                LedgerEntry.entry_type == "PAYMENT_GROSS",
+                LedgerEntry.entry_created_at >= cutoff,
+            ]
+            return (
+                self.db.query(func.coalesce(func.sum(LedgerEntry.amount), 0))
+                .filter(and_(*f))
+                .scalar()
+            ) or 0
+
+        if disburse_dates:
+            last_disburse = disburse_dates[0]
+            # Detect interval: average gap between last few disbursements
+            if len(disburse_dates) >= 2:
+                gaps = [
+                    (disburse_dates[i] - disburse_dates[i + 1]).days
+                    for i in range(min(4, len(disburse_dates) - 1))
+                ]
+                avg_interval_days = round(sum(gaps) / len(gaps))
+            else:
+                avg_interval_days = 30  # default: monthly
+
+            # Advance next_deposit until it's in the future
+            next_deposit = last_disburse + timedelta(days=avg_interval_days)
+            while next_deposit < now:
+                next_deposit += timedelta(days=avg_interval_days)
+
+            # Within 3-day window of next deposit → funds are being prepared
+            if now >= next_deposit - timedelta(days=3):
+                available_for_deposit = max(0, current_balance - _pending_credits(filters))
+            else:
+                available_for_deposit = 0
+        else:
+            # New shop — no deposit history; use 3-day clearing heuristic
+            available_for_deposit = max(0, current_balance - _pending_credits(filters))
+
         result = {
             "current_balance": current_balance,
             "reserve_held": abs(reserve_total),
             "available_for_payout": current_balance - abs(reserve_total),
-            "available_for_deposit": current_balance,
+            "available_for_deposit": available_for_deposit,
             "currency": currency,
             "recent_payouts": [
                 {"amount": abs(p[0]), "date": p[1].isoformat() if p[1] else None}
