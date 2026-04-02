@@ -82,7 +82,7 @@ function OwnerDashboardContent() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { t } = useLanguage();
-  const { selectedShop, selectedShopIds, isLoading: shopLoading } = useShop();
+  const { selectedShop, selectedShopIds, shops, isLoading: shopLoading } = useShop();
   const { currency: displayCurrency, setCurrency } = useCurrency();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -286,7 +286,7 @@ function OwnerDashboardContent() {
               <thead>
                 <tr className="text-gray-400 text-xs border-b border-gray-100">
                   <th className="pb-3 font-semibold">מספר הזמנה</th>
-                  <th className="pb-3 font-semibold">לקוח</th>
+                  <th className="pb-3 font-semibold">חנות</th>
                   <th className="pb-3 font-semibold">תאריך</th>
                   <th className="pb-3 font-semibold">סטטוס</th>
                   <th className="pb-3 font-semibold text-left">סכום</th>
@@ -301,7 +301,9 @@ function OwnerDashboardContent() {
                   return (
                     <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                       <td className="py-3.5 font-bold text-[#006d43] text-sm">#{order.order_id}</td>
-                      <td className="py-3.5 text-gray-700 font-medium text-sm">{order.buyer_name}</td>
+                      <td className="py-3.5 text-gray-700 font-medium text-sm">
+                        {shops.find(s => s.id === order.shop_id)?.display_name || '—'}
+                      </td>
                       <td className="py-3.5 text-gray-400 text-sm">{hebrewDate}</td>
                       <td className="py-3.5">
                         <span className={cn(

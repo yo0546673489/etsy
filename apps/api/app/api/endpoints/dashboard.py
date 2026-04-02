@@ -368,6 +368,7 @@ async def get_recent_orders(
         item = {
             "id": order.id,
             "order_id": order.etsy_receipt_id or f"#{order.id}",
+            "shop_id": order.shop_id,
             "buyer_name": order.buyer_name or "Unknown Customer",
             "customer": order.buyer_name or "Unknown Customer",
             "customer_email": order.buyer_email,

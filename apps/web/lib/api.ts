@@ -885,6 +885,7 @@ export interface DashboardStats {
 export interface DashboardOrder {
   id: number;
   order_id: string;
+  shop_id?: number | null;
   buyer_name: string;
   customer: string;
   customer_email: string;
