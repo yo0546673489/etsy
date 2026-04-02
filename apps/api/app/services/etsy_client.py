@@ -603,9 +603,19 @@ class EtsyClient:
                 return results[0] if results else None
             return data if isinstance(data, dict) else None
         except EtsyAPIError as exc:
-            if exc.status_code in (404, 400, 500):
+            import logging as _log
+            _log.getLogger(__name__).warning(
+                f"[PAYMENT_ACCOUNT] shop={etsy_shop_id} status={exc.status_code} msg={exc!r}"
+            )
+            if exc.status_code in (404, 400, 403, 500):
                 return None
             raise
+        except Exception as exc:
+            import logging as _log
+            _log.getLogger(__name__).warning(
+                f"[PAYMENT_ACCOUNT] shop={etsy_shop_id} unexpected error: {exc!r}"
+            )
+            return None
 
     async def get_ledger_entry_payments(
         self,
