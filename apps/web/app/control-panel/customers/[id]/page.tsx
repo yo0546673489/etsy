@@ -2,21 +2,21 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { cpApi, type CustomerDetails, type FeatureType } from '@/lib/cp-api';
-import { ArrowLeft, CheckCircle, XCircle, MessageSquare, Tag, Zap, AlertTriangle } from 'lucide-react';
+import { ArrowRight, CheckCircle, XCircle, MessageSquare, Tag, Zap, AlertTriangle } from 'lucide-react';
 
 const FEATURES: { key: FeatureType; label: string; icon: React.ElementType }[] = [
-  { key: 'messaging', label: 'Messages', icon: MessageSquare },
-  { key: 'discounts', label: 'Discounts', icon: Tag },
-  { key: 'automations', label: 'Automations', icon: Zap },
+  { key: 'messaging', label: 'הודעות', icon: MessageSquare },
+  { key: 'discounts', label: 'הנחות', icon: Tag },
+  { key: 'automations', label: 'אוטומציות', icon: Zap },
 ];
 
 function timeAgo(iso: string | null) {
-  if (!iso) return 'Never';
+  if (!iso) return 'אף פעם';
   const diff = Date.now() - new Date(iso).getTime();
   const h = Math.floor(diff / 3600000);
-  if (h < 1) return 'Just now';
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 1) return 'עכשיו';
+  if (h < 24) return `לפני ${h} שעות`;
+  return `לפני ${Math.floor(h / 24)} ימים`;
 }
 
 export default function CPCustomerDetails() {
@@ -34,11 +34,8 @@ export default function CPCustomerDetails() {
   const toggleFeature = async (feature: FeatureType, current: string) => {
     setToggling(feature);
     try {
-      if (current === 'approved') {
-        await cpApi.revokeFeature(tenantId, feature);
-      } else {
-        await cpApi.approveFeature(tenantId, feature);
-      }
+      if (current === 'approved') await cpApi.revokeFeature(tenantId, feature);
+      else await cpApi.approveFeature(tenantId, feature);
       await load();
     } catch (e: any) { alert(e.message); }
     finally { setToggling(null); }
@@ -53,7 +50,11 @@ export default function CPCustomerDetails() {
     } catch (e: any) { alert(e.message); setDeleting(false); }
   };
 
-  if (!customer) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" /></div>;
+  if (!customer) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#006d43' }} />
+    </div>
+  );
 
   const ownerEmail = customer.members.find(m => m.role === 'owner')?.email || '';
   const accessMap: Record<string, string> = {
@@ -62,99 +63,135 @@ export default function CPCustomerDetails() {
     automations: customer.automations_access,
   };
 
+  const roleLabel: Record<string, string> = { owner: 'בעלים', admin: 'מנהל', creator: 'יוצר', viewer: 'צופה' };
+
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-8 max-w-4xl" style={{ direction: 'rtl' }}>
       <button onClick={() => router.push('/control-panel/customers')}
-        className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 text-sm">
-        <ArrowLeft className="w-4 h-4" /> Back to Customers
+        className="flex items-center gap-2 mb-6 text-sm transition-colors"
+        style={{ color: '#9ca3af' }}>
+        <ArrowRight className="w-4 h-4" /> חזרה ללקוחות
       </button>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-6">
+      <div className="rounded-xl p-6 mb-6" style={{ background: '#121a16', border: '1px solid rgba(0,109,67,0.2)' }}>
         <h1 className="text-2xl font-bold text-white">{customer.org_name}</h1>
-        <div className="flex gap-6 mt-2 text-sm text-gray-400">
+        <div className="flex gap-6 mt-2 text-sm flex-wrap" style={{ color: '#9ca3af' }}>
           <span>{ownerEmail}</span>
-          <span className="capitalize">{customer.status}</span>
-          <span>Joined {new Date(customer.created_at).toLocaleDateString()}</span>
+          <span>{customer.status === 'active' ? 'פעיל' : customer.status}</span>
+          <span>הצטרף {new Date(customer.created_at).toLocaleDateString('he-IL')}</span>
         </div>
       </div>
 
-      <h2 className="text-white font-semibold text-lg mb-3">Feature Access</h2>
+      <h2 className="text-white font-semibold text-lg mb-3">גישה לתכונות</h2>
       <div className="grid grid-cols-3 gap-4 mb-6">
         {FEATURES.map(f => {
           const status = accessMap[f.key];
           const approved = status === 'approved';
           return (
-            <div key={f.key} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+            <div key={f.key} className="rounded-xl p-5" style={{ background: '#121a16', border: `1px solid ${approved ? 'rgba(0,109,67,0.4)' : 'rgba(0,109,67,0.15)'}` }}>
               <div className="flex items-center gap-2 mb-3">
-                <f.icon className={`w-5 h-5 ${approved ? 'text-green-400' : 'text-gray-500'}`} />
+                <f.icon className="w-5 h-5" style={{ color: approved ? '#006d43' : '#6b7280' }} />
                 <span className="text-white font-medium">{f.label}</span>
               </div>
               <div className="flex items-center gap-2 mb-4">
-                {approved ? <CheckCircle className="w-4 h-4 text-green-400" /> : <XCircle className="w-4 h-4 text-gray-500" />}
-                <span className={`text-sm ${approved ? 'text-green-400' : 'text-gray-500'}`}>{approved ? 'Approved' : 'No access'}</span>
+                {approved
+                  ? <CheckCircle className="w-4 h-4" style={{ color: '#006d43' }} />
+                  : <XCircle className="w-4 h-4 text-gray-500" />}
+                <span className="text-sm" style={{ color: approved ? '#006d43' : '#6b7280' }}>
+                  {approved ? 'מאושר' : 'אין גישה'}
+                </span>
               </div>
               <button onClick={() => toggleFeature(f.key, status)}
                 disabled={toggling === f.key}
-                className={`w-full py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-                  approved ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                }`}>
-                {toggling === f.key ? '...' : approved ? 'Revoke' : 'Grant'}
+                className="w-full py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                style={{
+                  background: approved ? 'rgba(220,38,38,0.15)' : 'rgba(0,109,67,0.15)',
+                  color: approved ? '#f87171' : '#006d43',
+                }}>
+                {toggling === f.key ? '...' : approved ? 'שלילת גישה' : 'מתן גישה'}
               </button>
             </div>
           );
         })}
       </div>
 
-      <h2 className="text-white font-semibold text-lg mb-3">Members ({customer.members.length})</h2>
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-6">
+      <h2 className="text-white font-semibold text-lg mb-3">חברי צוות ({customer.members.length})</h2>
+      <div className="rounded-xl overflow-hidden mb-6" style={{ background: '#121a16', border: '1px solid rgba(0,109,67,0.2)' }}>
         <table className="w-full">
-          <thead><tr className="border-b border-gray-800"><th className="text-left px-4 py-3 text-gray-400 text-xs font-semibold uppercase">Email</th><th className="text-left px-4 py-3 text-gray-400 text-xs font-semibold uppercase">Name</th><th className="text-left px-4 py-3 text-gray-400 text-xs font-semibold uppercase">Role</th><th className="text-left px-4 py-3 text-gray-400 text-xs font-semibold uppercase">Last Login</th></tr></thead>
+          <thead>
+            <tr style={{ borderBottom: '1px solid rgba(0,109,67,0.2)' }}>
+              <th className="text-right px-4 py-3 text-xs font-semibold uppercase" style={{ color: '#6b7280' }}>אימייל</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold uppercase" style={{ color: '#6b7280' }}>שם</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold uppercase" style={{ color: '#6b7280' }}>תפקיד</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold uppercase" style={{ color: '#6b7280' }}>כניסה אחרונה</th>
+            </tr>
+          </thead>
           <tbody>
             {customer.members.map(m => (
-              <tr key={m.id} className="border-b border-gray-800/50">
-                <td className="px-4 py-3 text-gray-300 text-sm">{m.email}</td>
-                <td className="px-4 py-3 text-gray-300 text-sm">{m.name || '—'}</td>
-                <td className="px-4 py-3"><span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-xs">{m.role}</span></td>
-                <td className="px-4 py-3 text-gray-500 text-sm">{timeAgo(m.last_login_at)}</td>
+              <tr key={m.id} style={{ borderBottom: '1px solid rgba(0,109,67,0.1)' }}>
+                <td className="px-4 py-3 text-sm" style={{ color: '#d1d5db' }}>{m.email}</td>
+                <td className="px-4 py-3 text-sm" style={{ color: '#d1d5db' }}>{m.name || '—'}</td>
+                <td className="px-4 py-3">
+                  <span className="px-2 py-0.5 rounded text-xs" style={{ background: 'rgba(0,109,67,0.15)', color: '#006d43' }}>
+                    {roleLabel[m.role] || m.role}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm" style={{ color: '#6b7280' }}>{timeAgo(m.last_login_at)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <h2 className="text-white font-semibold text-lg mb-3">Connected Shops ({customer.shops.length})</h2>
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-6">
+      <h2 className="text-white font-semibold text-lg mb-3">חנויות מחוברות ({customer.shops.length})</h2>
+      <div className="rounded-xl overflow-hidden mb-6" style={{ background: '#121a16', border: '1px solid rgba(0,109,67,0.2)' }}>
         <table className="w-full">
-          <thead><tr className="border-b border-gray-800"><th className="text-left px-4 py-3 text-gray-400 text-xs font-semibold uppercase">Shop</th><th className="text-left px-4 py-3 text-gray-400 text-xs font-semibold uppercase">Status</th><th className="text-center px-4 py-3 text-gray-400 text-xs font-semibold uppercase">Products</th><th className="text-center px-4 py-3 text-gray-400 text-xs font-semibold uppercase">Orders</th></tr></thead>
+          <thead>
+            <tr style={{ borderBottom: '1px solid rgba(0,109,67,0.2)' }}>
+              <th className="text-right px-4 py-3 text-xs font-semibold uppercase" style={{ color: '#6b7280' }}>חנות</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold uppercase" style={{ color: '#6b7280' }}>סטטוס</th>
+              <th className="text-center px-4 py-3 text-xs font-semibold uppercase" style={{ color: '#6b7280' }}>מוצרים</th>
+              <th className="text-center px-4 py-3 text-xs font-semibold uppercase" style={{ color: '#6b7280' }}>הזמנות</th>
+            </tr>
+          </thead>
           <tbody>
             {customer.shops.map(s => (
-              <tr key={s.id} className="border-b border-gray-800/50">
+              <tr key={s.id} style={{ borderBottom: '1px solid rgba(0,109,67,0.1)' }}>
                 <td className="px-4 py-3 text-white text-sm font-medium">{s.display_name}</td>
-                <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs ${s.status === 'connected' ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-400'}`}>{s.status}</span></td>
-                <td className="px-4 py-3 text-center text-gray-300 text-sm">{s.product_count}</td>
-                <td className="px-4 py-3 text-center text-gray-300 text-sm">{s.order_count}</td>
+                <td className="px-4 py-3">
+                  <span className="px-2 py-0.5 rounded text-xs" style={{
+                    background: s.status === 'connected' ? 'rgba(0,109,67,0.15)' : 'rgba(255,255,255,0.05)',
+                    color: s.status === 'connected' ? '#006d43' : '#6b7280',
+                  }}>
+                    {s.status === 'connected' ? 'מחובר' : s.status}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-center text-sm" style={{ color: '#d1d5db' }}>{s.product_count}</td>
+                <td className="px-4 py-3 text-center text-sm" style={{ color: '#d1d5db' }}>{s.order_count}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div className="bg-gray-900 border border-red-900/50 rounded-xl p-6">
+      <div className="rounded-xl p-6" style={{ background: '#121a16', border: '1px solid rgba(220,38,38,0.3)' }}>
         <div className="flex items-center gap-2 mb-2">
           <AlertTriangle className="w-5 h-5 text-red-400" />
-          <h2 className="text-red-400 font-semibold">Danger Zone</h2>
+          <h2 className="text-red-400 font-semibold">אזור מסוכן</h2>
         </div>
-        <p className="text-gray-400 text-sm mb-4">Permanently deletes ALL data. Customer must register from scratch.</p>
-        <p className="text-gray-400 text-sm mb-2">Type <span className="text-white font-mono">{ownerEmail}</span> to confirm:</p>
+        <p className="text-sm mb-4" style={{ color: '#9ca3af' }}>מחיקה לצמיתות של כל הנתונים. הלקוח יצטרך להירשם מחדש.</p>
+        <p className="text-sm mb-2" style={{ color: '#9ca3af' }}>הקלד <span className="text-white font-mono">{ownerEmail}</span> לאישור:</p>
         <div className="flex gap-3">
           <input value={confirmEmail} onChange={e => setConfirmEmail(e.target.value)}
             placeholder={ownerEmail}
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-red-500"
+            className="flex-1 rounded-lg px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none text-right"
+            style={{ background: '#0a0f0d', border: '1px solid rgba(220,38,38,0.4)' }}
           />
           <button onClick={handleDelete}
             disabled={confirmEmail !== ownerEmail || deleting}
-            className="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap">
-            {deleting ? 'Deleting...' : 'Delete Customer'}
+            className="text-white px-5 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap disabled:opacity-40"
+            style={{ background: '#dc2626' }}>
+            {deleting ? 'מוחק...' : 'מחיקת לקוח'}
           </button>
         </div>
       </div>

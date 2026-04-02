@@ -16,47 +16,50 @@ export default function CPDashboard() {
 
   if (!stats) return (
     <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#006d43' }} />
     </div>
   );
 
   const cards = [
-    { label: 'Total Tenants', value: stats.total_tenants, icon: Building2, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { label: 'Active', value: stats.active_tenants, icon: UserCheck, color: 'text-green-400', bg: 'bg-green-500/10' },
-    { label: 'Connected Shops', value: stats.total_shops, icon: Store, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { label: 'Users', value: stats.total_users, icon: Users, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+    { label: 'סה"כ חשבונות', value: stats.total_tenants, icon: Building2 },
+    { label: 'פעילים', value: stats.active_tenants, icon: UserCheck },
+    { label: 'חנויות מחוברות', value: stats.total_shops, icon: Store },
+    { label: 'משתמשים', value: stats.total_users, icon: Users },
   ];
 
   const features = [
-    { label: 'Messages', value: stats.features.messaging, icon: MessageSquare, color: 'text-blue-400' },
-    { label: 'Discounts', value: stats.features.discounts, icon: Tag, color: 'text-yellow-400' },
-    { label: 'Automations', value: stats.features.automations, icon: Zap, color: 'text-green-400' },
+    { label: 'אוטומציות', value: stats.features.automations, icon: Zap },
+    { label: 'הנחות', value: stats.features.discounts, icon: Tag },
+    { label: 'הודעות', value: stats.features.messaging, icon: MessageSquare },
   ];
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-white mb-8">Dashboard</h1>
+    <div className="p-8" style={{ direction: 'rtl' }}>
+      <h1 className="text-2xl font-bold text-white mb-2">דשבורד</h1>
+      <p className="text-sm mb-8" style={{ color: '#6b7280' }}>סקירה כללית של המערכת</p>
+
       <div className="grid grid-cols-4 gap-4 mb-8">
         {cards.map(c => (
-          <div key={c.label} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <div className={`w-10 h-10 ${c.bg} rounded-lg flex items-center justify-center mb-3`}>
-              <c.icon className={`w-5 h-5 ${c.color}`} />
+          <div key={c.label} className="rounded-xl p-5" style={{ background: '#121a16', border: '1px solid rgba(0,109,67,0.2)' }}>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ background: 'rgba(0,109,67,0.12)' }}>
+              <c.icon className="w-5 h-5" style={{ color: '#006d43' }} />
             </div>
             <p className="text-3xl font-bold text-white">{c.value}</p>
-            <p className="text-gray-500 text-sm mt-1">{c.label}</p>
+            <p className="text-sm mt-1" style={{ color: '#6b7280' }}>{c.label}</p>
           </div>
         ))}
       </div>
-      <h2 className="text-lg font-semibold text-white mb-4">Feature Access</h2>
+
+      <h2 className="text-lg font-semibold text-white mb-4">גישה לתכונות</h2>
       <div className="grid grid-cols-3 gap-4">
         {features.map(f => (
-          <div key={f.label} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <div key={f.label} className="rounded-xl p-5" style={{ background: '#121a16', border: '1px solid rgba(0,109,67,0.2)' }}>
             <div className="flex items-center gap-2 mb-2">
-              <f.icon className={`w-5 h-5 ${f.color}`} />
+              <f.icon className="w-5 h-5" style={{ color: '#006d43' }} />
               <p className="text-white font-semibold">{f.label}</p>
             </div>
             <p className="text-3xl font-bold text-white">{f.value}</p>
-            <p className="text-gray-500 text-sm mt-1">of {stats.total_tenants} tenants</p>
+            <p className="text-sm mt-1" style={{ color: '#6b7280' }}>מתוך {stats.total_tenants} חשבונות</p>
           </div>
         ))}
       </div>

@@ -4,9 +4,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Users, Shield, LogOut } from 'lucide-react';
 
 const navItems = [
-  { href: '/control-panel/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/control-panel/customers', label: 'Customers', icon: Users },
-  { href: '/control-panel/permissions', label: 'Permissions', icon: Shield },
+  { href: '/control-panel/dashboard', label: 'דשבורד', icon: LayoutDashboard },
+  { href: '/control-panel/customers', label: 'לקוחות', icon: Users },
+  { href: '/control-panel/permissions', label: 'הרשאות', icon: Shield },
 ];
 
 export default function ControlPanelLayout({ children }: { children: React.ReactNode }) {
@@ -14,7 +14,7 @@ export default function ControlPanelLayout({ children }: { children: React.React
   const router = useRouter();
 
   if (pathname === '/control-panel') {
-    return <div className="min-h-screen bg-gray-950">{children}</div>;
+    return <div className="min-h-screen" style={{ background: '#0a0f0d' }}>{children}</div>;
   }
 
   const handleLogout = async () => {
@@ -23,11 +23,11 @@ export default function ControlPanelLayout({ children }: { children: React.React
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex">
-      <aside className="w-56 bg-gray-900 border-r border-gray-800 flex flex-col">
-        <div className="px-6 py-5 border-b border-gray-800">
+    <div className="min-h-screen flex" style={{ background: '#0a0f0d', direction: 'rtl' }}>
+      <aside className="w-56 flex flex-col" style={{ background: '#121a16', borderLeft: '1px solid #006d43/20', borderLeftColor: 'rgba(0,109,67,0.2)' }}>
+        <div className="px-6 py-5" style={{ borderBottom: '1px solid rgba(0,109,67,0.2)' }}>
           <p className="text-white font-bold text-lg">Profitly</p>
-          <p className="text-gray-500 text-xs mt-0.5">Control Panel</p>
+          <p className="text-sm mt-0.5" style={{ color: '#006d43' }}>לוח בקרה</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navItems.map(item => {
@@ -35,18 +35,23 @@ export default function ControlPanelLayout({ children }: { children: React.React
             const isActive = pathname.startsWith(item.href);
             return (
               <Link key={item.href} href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'
-                }`}>
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                style={{
+                  background: isActive ? '#006d43' : 'transparent',
+                  color: isActive ? '#ffffff' : '#9ca3af',
+                }}>
                 <Icon className="w-4 h-4" />{item.label}
               </Link>
             );
           })}
         </nav>
-        <div className="px-3 py-4 border-t border-gray-800">
+        <div className="px-3 py-4" style={{ borderTop: '1px solid rgba(0,109,67,0.2)' }}>
           <button onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-400 hover:text-red-400 hover:bg-gray-800 rounded-lg transition-colors">
-            <LogOut className="w-4 h-4" />Logout
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg transition-colors"
+            style={{ color: '#9ca3af' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#9ca3af')}>
+            <LogOut className="w-4 h-4" />התנתקות
           </button>
         </div>
       </aside>
