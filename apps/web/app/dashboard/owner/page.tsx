@@ -223,15 +223,15 @@ function OwnerDashboardContent() {
           סדר (ימין→שמאל): רווח נקי | כסף משוחרר לבנק | מספר הזמנות | צפיות בחנות
       */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1st = RIGHTMOST: רווח נקי החודש */}
+        {/* 1st = RIGHTMOST: יתרה נוכחית */}
         <StatCard
-          badge="החודש"
-          badgeColor={monthlyNetProfit !== null && monthlyNetProfit < 0 ? 'text-red-500' : 'text-[#006d43]'}
+          badge={payoutAmount < 0 ? 'חוב' : 'עדכני'}
+          badgeColor={payoutAmount < 0 ? 'text-red-500' : 'text-[#006d43]'}
           icon={Wallet}
-          iconBg={monthlyNetProfit !== null && monthlyNetProfit < 0 ? 'bg-red-50' : 'bg-green-50'}
-          iconColor={monthlyNetProfit !== null && monthlyNetProfit < 0 ? 'text-red-500' : 'text-[#006d43]'}
-          label="רווח נקי"
-          value={monthlyNetProfit !== null ? formatCurrencyWith(monthlyNetProfit, convertedPayoutCurrency || shopCurrency) : '—'}
+          iconBg={payoutAmount < 0 ? 'bg-red-50' : 'bg-green-50'}
+          iconColor={payoutAmount < 0 ? 'text-red-500' : 'text-[#006d43]'}
+          label={payoutLabel}
+          value={formatCurrencyWith(payoutAmount, convertedPayoutCurrency || shopCurrency)}
         />
         {/* 2nd: כסף משוחרר לבנק */}
         <StatCard
