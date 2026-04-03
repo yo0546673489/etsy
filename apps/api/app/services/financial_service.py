@@ -414,13 +414,25 @@ class FinancialService:
                     is_monthly = (last_deposit_dt - oldest_before).days > 21
                 # else: no payments before deposit → can't tell → keep is_monthly=False
 
-            if not is_monthly or days_since_deposit > 60:
-                # Daily/weekly (or very stale deposit): all balance is cleared & available
+            if days_since_deposit > 60:
+                # Very stale deposit (shop likely disconnected/paused) — return full balance
                 return max(0, shop_balance)
 
-            # Monthly schedule: nothing is available until the next monthly deposit date.
-            # Etsy holds ALL funds (including pre-deposit residual) until next payout.
-            return 0
+            if is_monthly:
+                # Monthly schedule: nothing is available until the next monthly deposit date.
+                return 0
+
+            # Daily / weekly schedule:
+            # "Available for deposit" = net income accumulated since the last bank transfer.
+            # The DISBURSE2 already swept what was available; residual left behind is still
+            # in clearing. New income/fees since the deposit = what will be deposited next.
+            current_cycle = (
+                self.db.query(func.coalesce(func.sum(LedgerEntry.amount), 0))
+                .filter(and_(*shop_filter))
+                .filter(LedgerEntry.entry_created_at > last_deposit_dt)
+                .scalar()
+            ) or 0
+            return max(0, current_cycle)
 
         # Determine which shops to iterate over
         all_shop_ids: List[int] = []
