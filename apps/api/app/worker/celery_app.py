@@ -82,6 +82,10 @@ celery_app.conf.beat_schedule = {
         "task": "app.worker.tasks.financial_tasks.sync_ledger_entries",
         "schedule": 3600.0,  # Every hour — incremental, picks up new entries
     },
+    "sync-payment-account-every-10-min": {
+        "task": "app.worker.tasks.financial_tasks.sync_payment_account_all",
+        "schedule": 600.0,  # Every 10 minutes — keeps available_for_deposit fresh
+    },
     "fetch-daily-exchange-rates": {
         "task": "app.worker.tasks.exchange_rate_tasks.fetch_daily_exchange_rates",
         "schedule": 86400.0,  # Every 24 hours (daily)

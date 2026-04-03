@@ -294,12 +294,14 @@ async def _sync_shop_payment_account(
     db, etsy_client: EtsyClient, shop: Shop
 ) -> bool:
     """
-    Try to fetch payment-account from Etsy and upsert shop_financial_state.
-    Returns True if updated, False if endpoint unavailable or error.
+    Fetch /payment-account from Etsy and save to shop_financial_state.
 
-    NOTE: As of 2026, Etsy's payment-account endpoint is not available for
-    all shops. When unavailable, get_payout_estimate() falls back to the
-    most recent ledger entry's running balance field, which is accurate.
+    Field mapping (Etsy API → our DB):
+      available_funds  → available_for_deposit  ← "כסף משוחרר לבנק" — EXACT match to Etsy UI
+      ledger_balance   → ledger_balance          ← "יתרה נוכחית"
+      pending_funds    → pending_funds           ← funds still in clearing
+
+    Returns True if updated successfully, False if endpoint unavailable or error.
     """
     try:
         data = await etsy_client.get_payment_account(
@@ -308,29 +310,38 @@ async def _sync_shop_payment_account(
         )
         if not data:
             logger.warning(
-                f"Payment account returned no data for shop {shop.id} "
-                f"(etsy_shop_id={shop.etsy_shop_id})"
+                f"[payment_account] shop {shop.id} returned no data — marking etsy_api_available=False"
             )
+            _mark_api_unavailable(db, shop)
             return False
 
-        balance = _normalize_etsy_money(data.get("balance"))
-        available = _normalize_etsy_money(data.get("available_for_payout"))
+        # --- Extract the three key fields from Etsy API response ---
+        # available_funds  = "Available for deposit" in Etsy UI — the exact number we want
+        available_for_deposit = _normalize_etsy_money(data.get("available_funds"))
+        # ledger_balance   = total running balance (sum of all ledger entries)
+        ledger_balance_val = _normalize_etsy_money(data.get("ledger_balance"))
+        # pending_funds    = funds still in clearing/reserve (not yet available)
+        pending_funds_val = _normalize_etsy_money(data.get("pending_funds"))
+        # reserve_amount   = held for reserve program (may be nested or top-level)
         reserve = _normalize_etsy_money(data.get("reserve_amount"))
 
-        # Extract currency from the balance object (Etsy money dict)
+        # Extract currency from the best available field
         currency = (
-            (data.get("balance") or {}).get("currency_code")
+            (data.get("available_funds") or {}).get("currency_code")
+            or (data.get("ledger_balance") or {}).get("currency_code")
             or data.get("currency_code")
             or "USD"
         )
         if isinstance(currency, dict):
             currency = currency.get("currency_code", "USD")
-        currency = str(currency)[:3] if currency else "USD"
+        currency = str(currency).upper()[:3] if currency else "USD"
 
         logger.info(
-            f"Payment account for shop {shop.id}: "
-            f"balance={balance} available={available} "
-            f"reserve={reserve} currency={currency}"
+            f"[payment_account] shop {shop.id} ({shop.etsy_shop_id}): "
+            f"available_for_deposit={available_for_deposit} "
+            f"ledger_balance={ledger_balance_val} "
+            f"pending_funds={pending_funds_val} "
+            f"currency={currency}"
         )
 
         now = datetime.now(timezone.utc)
@@ -340,37 +351,90 @@ async def _sync_shop_payment_account(
             .first()
         )
         if state:
-            state.balance = balance
-            state.available_for_payout = available
+            state.available_for_deposit = available_for_deposit
+            state.ledger_balance = ledger_balance_val
+            state.pending_funds = pending_funds_val
             state.reserve_amount = reserve if reserve else None
             state.currency_code = currency
+            # Keep legacy fields in sync
+            state.balance = ledger_balance_val
+            state.available_for_payout = available_for_deposit
+            state.etsy_api_available = True
             state.updated_at = now
         else:
             state = ShopFinancialState(
                 shop_id=shop.id,
                 tenant_id=shop.tenant_id,
-                balance=balance,
-                available_for_payout=available,
+                available_for_deposit=available_for_deposit,
+                ledger_balance=ledger_balance_val,
+                pending_funds=pending_funds_val,
                 reserve_amount=reserve if reserve else None,
                 currency_code=currency,
+                balance=ledger_balance_val,
+                available_for_payout=available_for_deposit,
+                etsy_api_available=True,
                 updated_at=now,
             )
             db.add(state)
 
         db.commit()
-        logger.info(f"Saved shop_financial_state for shop {shop.id}")
+        logger.info(f"[payment_account] shop {shop.id} — saved successfully")
         return True
 
     except EtsyAPIError as exc:
-        logger.warning(
-            f"EtsyAPIError fetching payment account for shop {shop.id}: {exc}"
-        )
+        logger.warning(f"[payment_account] shop {shop.id} EtsyAPIError: {exc}")
+        _mark_api_unavailable(db, shop)
         return False
     except Exception as exc:
-        logger.warning(
-            f"Payment account sync failed for shop {shop.id}: {exc}"
-        )
+        logger.warning(f"[payment_account] shop {shop.id} unexpected error: {exc}")
         return False
+
+
+def _mark_api_unavailable(db, shop: Shop) -> None:
+    """Mark shop_financial_state.etsy_api_available = False (payment-account endpoint not supported)."""
+    try:
+        state = db.query(ShopFinancialState).filter(ShopFinancialState.shop_id == shop.id).first()
+        if state:
+            state.etsy_api_available = False
+            db.commit()
+    except Exception:
+        pass
+
+
+@celery_app.task(name="app.worker.tasks.financial_tasks.sync_payment_account_all")
+def sync_payment_account_all() -> dict:
+    """
+    Sync payment-account (available_for_deposit) for ALL connected shops.
+    Runs every 10 minutes via Celery Beat.
+    For each shop: fetches available_funds from Etsy → stores in shop_financial_state.
+    Dashboard reads from this table (DB cache) instead of calling Etsy on every request.
+    """
+    db = SessionLocal()
+    try:
+        shops = _get_shops(db, shop_id=None, tenant_id=None)
+        logger.info(f"[sync_payment_account_all] syncing {len(shops)} shops")
+
+        etsy_client = EtsyClient(db)
+        results = {"shops_total": len(shops), "updated": 0, "unavailable": 0, "errors": 0}
+
+        for shop in shops:
+            if not _has_financial_scope(db, shop):
+                results["unavailable"] += 1
+                continue
+            try:
+                ok = asyncio.run(_sync_shop_payment_account(db, etsy_client, shop))
+                if ok:
+                    results["updated"] += 1
+                else:
+                    results["unavailable"] += 1
+            except Exception as exc:
+                logger.warning(f"[sync_payment_account_all] shop {shop.id} failed: {exc}")
+                results["errors"] += 1
+
+        logger.info(f"[sync_payment_account_all] done: {results}")
+        return results
+    finally:
+        db.close()
 
 
 # ============================================================

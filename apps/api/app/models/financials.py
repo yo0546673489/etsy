@@ -64,10 +64,26 @@ class ShopFinancialState(Base):
 
     shop_id = Column(BigInteger, ForeignKey("shops.id", ondelete="CASCADE"), primary_key=True)
     tenant_id = Column(BigInteger, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    balance = Column(Integer, nullable=False, server_default="0")  # cents
-    available_for_payout = Column(Integer, nullable=False, server_default="0")  # cents
+
+    # From Etsy /payment-account API — available_funds field
+    # This is exactly what Etsy shows as "Available for deposit" in their UI
+    available_for_deposit = Column(Integer, nullable=True)   # cents — available_funds from Etsy
+
+    # From Etsy /payment-account API — ledger_balance field
+    # The total running balance of the account (all entries summed)
+    ledger_balance = Column(Integer, nullable=True)          # cents — ledger_balance from Etsy
+
+    # From Etsy /payment-account API — pending_funds field
+    # Funds still in clearing (not yet available)
+    pending_funds = Column(Integer, nullable=True)           # cents — pending_funds from Etsy
+
+    # Legacy / fallback fields (kept for backward compatibility)
+    balance = Column(Integer, nullable=False, server_default="0")  # cents (legacy)
+    available_for_payout = Column(Integer, nullable=False, server_default="0")  # cents (legacy)
+
     currency_code = Column(String(3), nullable=False, server_default="USD")
-    reserve_amount = Column(Integer, nullable=True)  # cents
+    reserve_amount = Column(Integer, nullable=True)          # cents
+    etsy_api_available = Column(Boolean, nullable=True)      # True if /payment-account returned data
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     __table_args__ = (
