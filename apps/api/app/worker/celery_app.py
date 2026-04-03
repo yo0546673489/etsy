@@ -3,6 +3,7 @@ Celery Application Configuration
 Background task worker for async operations
 """
 from celery import Celery
+from celery.schedules import crontab
 from app.core.config import settings
 import logging
 
@@ -78,13 +79,9 @@ celery_app.conf.beat_schedule = {
         "task": "app.worker.tasks.order_tasks.reconcile_orders",
         "schedule": 3600.0,  # Every hour
     },
-    "sync-ledger-entries-hourly": {
+    "sync-ledger-entries-daily-morning": {
         "task": "app.worker.tasks.financial_tasks.sync_ledger_entries",
-        "schedule": 3600.0,  # Every hour — incremental, picks up new entries
-    },
-    "sync-payment-account-every-10-min": {
-        "task": "app.worker.tasks.financial_tasks.sync_payment_account_all",
-        "schedule": 600.0,  # Every 10 minutes — keeps available_for_deposit fresh
+        "schedule": crontab(hour=6, minute=0),  # כל בוקר ב-06:00 UTC (09:00 ישראל)
     },
     "fetch-daily-exchange-rates": {
         "task": "app.worker.tasks.exchange_rate_tasks.fetch_daily_exchange_rates",
