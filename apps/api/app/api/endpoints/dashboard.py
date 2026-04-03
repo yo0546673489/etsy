@@ -226,13 +226,27 @@ async def get_dashboard_stats(
             # current_balance = SUM(all ledger amounts) = true account balance
             available_for_payout = payout_data.get("current_balance", 0) / 100
             payout_currency = payout_data.get("currency", "ILS")
-            # available_for_deposit: balance minus PAYMENT_GROSS credits from last 3 days
-            # (Etsy clearing period). Approximates Etsy's "available for deposit" value
-            # since the /payment-account API endpoint returns 404 for all shops.
+            # available_for_deposit: balance minus in-clearing net amount
             available_for_deposit = payout_data.get("available_for_deposit", 0) / 100
         except Exception:
             available_for_payout = 0
             payout_currency = "ILS"
+
+    # ── Monthly net profit ──────────────────────────────────────────────
+    monthly_net_profit = None
+    try:
+        now_utc = datetime.now(timezone.utc)
+        month_start = datetime(now_utc.year, now_utc.month, 1, tzinfo=timezone.utc)
+        svc = FinancialService(db)
+        pnl = svc.get_profit_and_loss(
+            tenant_id=context.tenant_id,
+            shop_ids=parsed_shop_ids if parsed_shop_ids else None,
+            start_date=month_start,
+            end_date=now_utc,
+        )
+        monthly_net_profit = pnl.get("net_profit", 0) / 100
+    except Exception:
+        pass
 
     # ── Currency conversion for display ────────────────────────────────
     display_amount = None
@@ -267,6 +281,7 @@ async def get_dashboard_stats(
         "new_orders_unread": new_orders_unread,
         "available_for_payout": available_for_payout,
         "available_for_deposit": available_for_deposit,
+        "monthly_net_profit": monthly_net_profit,
         "payout_currency": payout_currency,
         "payout_label": payout_label,
         "display_amount": display_amount,

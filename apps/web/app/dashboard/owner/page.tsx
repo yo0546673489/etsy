@@ -161,6 +161,7 @@ function OwnerDashboardContent() {
   const payoutAmount      = convertedPayoutAmount !== null ? convertedPayoutAmount : payoutAmountRaw;
   const depositAmountRaw  = stats.available_for_deposit;
   const depositAmount     = stats.display_deposit_amount ?? depositAmountRaw;  // prefer converted
+  const monthlyNetProfit  = stats.monthly_net_profit ?? null;
   const payoutLabel       = stats.payout_label || 'יתרה נוכחית';
   const totalOrders       = stats.total_orders || 0;
   const totalViews        = stats.total_views || 0;
@@ -218,18 +219,18 @@ function OwnerDashboardContent() {
 
       {/* ── 4 Stat Cards ──
           RTL: first in HTML = visual RIGHTMOST
-          סדר (ימין→שמאל): יתרה נוכחית | כסף משוחרר לבנק | מספר הזמנות | צפיות בחנות
+          סדר (ימין→שמאל): רווח נקי | כסף משוחרר לבנק | מספר הזמנות | צפיות בחנות
       */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1st = RIGHTMOST: יתרה נוכחית */}
+        {/* 1st = RIGHTMOST: רווח נקי החודש */}
         <StatCard
-          badge={payoutAmount < 0 ? 'חוב' : 'עדכני'}
-          badgeColor={payoutAmount < 0 ? 'text-red-500' : 'text-[#006d43]'}
+          badge="החודש"
+          badgeColor={monthlyNetProfit !== null && monthlyNetProfit < 0 ? 'text-red-500' : 'text-[#006d43]'}
           icon={Wallet}
-          iconBg={payoutAmount < 0 ? 'bg-red-50' : 'bg-green-50'}
-          iconColor={payoutAmount < 0 ? 'text-red-500' : 'text-[#006d43]'}
-          label={payoutLabel}
-          value={formatCurrencyWith(payoutAmount, convertedPayoutCurrency || shopCurrency)}
+          iconBg={monthlyNetProfit !== null && monthlyNetProfit < 0 ? 'bg-red-50' : 'bg-green-50'}
+          iconColor={monthlyNetProfit !== null && monthlyNetProfit < 0 ? 'text-red-500' : 'text-[#006d43]'}
+          label="רווח נקי"
+          value={monthlyNetProfit !== null ? formatCurrencyWith(monthlyNetProfit, convertedPayoutCurrency || shopCurrency) : '—'}
         />
         {/* 2nd: כסף משוחרר לבנק */}
         <StatCard

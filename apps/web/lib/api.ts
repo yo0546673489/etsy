@@ -875,6 +875,7 @@ export interface DashboardStats {
   new_orders_unread: number;
   available_for_payout?: number;
   available_for_deposit?: number | null;
+  monthly_net_profit?: number | null;
   payout_currency?: string;
   payout_label?: string;
   display_amount?: number | null;
