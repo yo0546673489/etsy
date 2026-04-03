@@ -368,12 +368,21 @@ class FinancialService:
 
             clearing_period_days = max(clearing_gaps) if clearing_gaps else 14
 
-            # Balance for this shop
-            shop_balance = (
-                self.db.query(func.coalesce(func.sum(LedgerEntry.amount), 0))
-                .filter(and_(*shop_filter))
-                .scalar()
-            ) or 0
+            # Balance for this shop — prefer ShopFinancialState (from Etsy API, exact)
+            # over ledger SUM (may be incomplete if full history was never synced)
+            state = (
+                self.db.query(ShopFinancialState)
+                .filter(ShopFinancialState.shop_id == sid)
+                .first()
+            )
+            if state and state.balance is not None:
+                shop_balance = state.balance  # already in cents, exact Etsy value
+            else:
+                shop_balance = (
+                    self.db.query(func.coalesce(func.sum(LedgerEntry.amount), 0))
+                    .filter(and_(*shop_filter))
+                    .scalar()
+                ) or 0
 
             # Payments still in clearing window
             clearing_cutoff = now - timedelta(days=clearing_period_days)
