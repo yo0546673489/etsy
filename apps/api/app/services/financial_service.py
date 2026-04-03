@@ -371,7 +371,9 @@ class FinancialService:
                 .scalar()
             ) or 0
 
-            return max(0, shop_balance - current_cycle)
+            # available = balance minus only the POSITIVE part of current cycle
+            # (new income in clearing).  Fees/charges don't inflate available above balance.
+            return max(0, shop_balance - max(0, current_cycle))
 
         # Determine which shops to iterate over
         all_shop_ids: List[int] = []
