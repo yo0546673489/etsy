@@ -378,7 +378,19 @@ class FinancialService:
             if second_deposit_row:
                 inter_gap = (last_deposit_dt - second_deposit_row[0]).days
                 is_monthly = inter_gap > 21
-            # If only one deposit on record: default non-monthly (conservative = show more)
+            else:
+                # Only one deposit on record: estimate from how long payments accumulated
+                # before that deposit.  Long accumulation (> 21 days) → monthly schedule.
+                oldest_before = (
+                    self.db.query(func.min(LedgerEntry.entry_created_at))
+                    .filter(and_(*shop_filter))
+                    .filter(LedgerEntry.entry_type == "PAYMENT_GROSS")
+                    .filter(LedgerEntry.entry_created_at < last_deposit_dt)
+                    .scalar()
+                )
+                if oldest_before:
+                    is_monthly = (last_deposit_dt - oldest_before).days > 21
+                # else: no payments before deposit → can't tell → keep is_monthly=False
 
             if not is_monthly or days_since_deposit > 60:
                 # Daily/weekly (or very stale deposit): all balance is cleared & available
