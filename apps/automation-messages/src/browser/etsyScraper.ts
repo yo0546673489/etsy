@@ -232,9 +232,11 @@ export class EtsyScraper {
       logger.info(`[EtsyScraper] ✓ Scraped ${scraped.messages.length} messages`);
     }
 
+    const GARBAGE_NAMES = ['read message', 'unread message', 'mark as read', 'mark as unread', 'new message'];
+    const isGarbageName = (n?: string) => !n || GARBAGE_NAMES.some(g => n.toLowerCase().trim().startsWith(g));
+
     const customerName =
-      knownCustomerName ||
-      scraped.messages.find(m => m.senderType === 'customer')?.senderName ||
+      (!isGarbageName(knownCustomerName) ? knownCustomerName : null) ||
       scraped.customerName ||
       'Unknown Customer';
 

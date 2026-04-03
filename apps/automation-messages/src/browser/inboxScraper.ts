@@ -77,6 +77,16 @@ export class InboxScraper {
       const pageLinks = await this.page.evaluate(() => {
         const results: { url: string; buyerName: string }[] = [];
 
+        // מילות אקססיביליטי שאסור לקחת כשם קונה
+        const GARBAGE_PATTERNS = [
+          'read message', 'unread message', 'mark as read', 'mark as unread',
+          'new message', 'open message', 'inbox',
+        ];
+        function isGarbage(text: string): boolean {
+          const lower = text.toLowerCase().trim();
+          return GARBAGE_PATTERNS.some(g => lower === g || lower.startsWith(g));
+        }
+
         // אסטרטגיה 1: לינקים לשיחות ספציפיות
         const links = document.querySelectorAll('a[href*="/messages/"]');
         links.forEach(link => {
@@ -85,16 +95,40 @@ export class InboxScraper {
           const url = href.split('?')[0];
           if (results.some(r => r.url === url)) return; // דדופ
 
-          // שם הקונה — מחפש בתוך הלינק
-          const nameEl = link.querySelector('[class*="name"], [class*="buyer"], strong, span');
-          let buyerName = nameEl?.textContent?.trim() || '';
+          // שם הקונה — ניסיון ממוקד לפי סלקטורים ספציפיים
+          let buyerName = '';
 
-          // גיבוי — לוקח טקסט כולל של הלינק ומנקה
-          if (!buyerName) {
-            buyerName = (link.textContent || '').replace(/\s+/g, ' ').trim().substring(0, 50);
+          // נסיון 1: אלמנט עם class שמכיל name/buyer/username (לא כפתור)
+          const nameEls = link.querySelectorAll('[class*="name"], [class*="buyer"], [class*="username"]');
+          for (const el of Array.from(nameEls)) {
+            if (el.tagName === 'BUTTON') continue;
+            const text = el.textContent?.trim() || '';
+            if (text && !isGarbage(text)) { buyerName = text; break; }
           }
 
-          results.push({ url, buyerName });
+          // נסיון 2: strong/h3/h4 (לא כפתור)
+          if (!buyerName) {
+            const headingEls = link.querySelectorAll('strong, h3, h4, [class*="title"]');
+            for (const el of Array.from(headingEls)) {
+              if (el.tagName === 'BUTTON') continue;
+              const text = el.textContent?.trim() || '';
+              if (text && !isGarbage(text) && text.length < 80) { buyerName = text; break; }
+            }
+          }
+
+          // נסיון 3: ה-span הראשון שאינו גארבג' ואינו מיד בתוך button
+          if (!buyerName) {
+            const spans = link.querySelectorAll('span');
+            for (const el of Array.from(spans)) {
+              if (el.closest('button')) continue;
+              const text = el.textContent?.trim() || '';
+              if (text && !isGarbage(text) && text.length > 1 && text.length < 80) {
+                buyerName = text; break;
+              }
+            }
+          }
+
+          results.push({ url, buyerName: buyerName.substring(0, 100) });
         });
 
         return results;

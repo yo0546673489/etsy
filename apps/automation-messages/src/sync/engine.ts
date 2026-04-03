@@ -86,7 +86,11 @@ export class SyncEngine {
           `UPDATE conversations
            SET last_message_text = $1, last_message_at = $2,
                customer_name = CASE
-                 WHEN $3 NOT IN ('', 'Unknown Customer', 'Unknown Buyer') THEN $3
+                 WHEN $3 NOT IN ('', 'Unknown Customer', 'Unknown Buyer')
+                      AND $3 NOT ILIKE '%read message%'
+                      AND $3 NOT ILIKE '%unread message%'
+                      AND $3 NOT ILIKE 'mark as%'
+                 THEN $3
                  ELSE customer_name
                END,
                status = CASE WHEN $4 = 'customer' AND status != 'closed' THEN 'new' ELSE status END,
