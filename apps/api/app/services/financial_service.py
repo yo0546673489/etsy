@@ -350,8 +350,16 @@ class FinancialService:
             )
 
             if not last_deposit_row:
-                # No deposit history — cannot determine availability
-                return 0
+                # No deposit history yet (e.g. daily shop before first deposit,
+                # or history not synced). Default to full balance — optimistic but
+                # correct for daily/weekly shops. Monthly shops without deposit
+                # history are rare and would have near-zero balance anyway.
+                shop_balance_0 = (
+                    self.db.query(func.coalesce(func.sum(LedgerEntry.amount), 0))
+                    .filter(and_(*shop_filter))
+                    .scalar()
+                ) or 0
+                return max(0, shop_balance_0)
 
             last_deposit_dt = last_deposit_row[0]
             days_since_deposit = (now - last_deposit_dt).days
