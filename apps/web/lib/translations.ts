@@ -632,14 +632,6 @@ export const translations = {
     "financials.legend.ads": "Advertising",
     "financials.legend.refunds": "Refunds",
     "financials.filterByType": "Filter by type",
-    "financials.discounts": "Discounts",
-    "financials.discountsDescription": "From order coupons and promotions",
-    "financials.ordersWithDiscounts": "Orders with discounts",
-    "financials.refreshConnection": "Refresh Connection",
-    "financials.refreshing": "Refreshing...",
-    "financials.connectionRefreshed": "Connection refreshed successfully",
-    "financials.refreshTokenExpired": "Refresh token expired. Please reconnect your Etsy shop.",
-    "financials.refreshFailed": "Failed to refresh connection",
     "financials.pendingNote": "Pending — Funds from recent sales not yet settled, typically 3–7 days after the sale. Included in balance but not yet available for payout.",
 
     // ── Sync Modal ──
