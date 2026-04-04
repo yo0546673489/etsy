@@ -208,9 +208,11 @@ function OwnerDashboardContent() {
       <div className="flex items-start justify-between">
         {/* 1st = visual RIGHT: Greeting */}
         <div className="text-right">
-          <h1 className="text-3xl font-black text-gray-800">{t('dashboard.welcome')}</h1>
+          <h1 className="text-3xl font-black text-gray-800">
+            {t('dashboard.welcome')}{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
+          </h1>
           <p className="text-gray-400 mt-1 text-sm">
-            {shopName} - {t('dashboard.welcomeSubtitle')}
+            {t('dashboard.welcomeSubtitle')}
           </p>
         </div>
 
