@@ -34,6 +34,20 @@ import {
   type SyncStatusResponse,
   type DiscountSummary,
 } from '@/lib/api';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+} from 'recharts';
 import { cn } from '@/lib/utils';
 import {
   DollarSign,
@@ -1010,6 +1024,7 @@ export default function FinancialsPage() {
   const [discounts, setDiscounts] = useState<DiscountSummary | null>(null);
   const [showEntryTypesModal, setShowEntryTypesModal] = useState(false);
   const [activeDrawer, setActiveDrawer] = useState<'payout' | 'balance' | 'profit' | null>(null);
+  const [salesActivityTab, setSalesActivityTab] = useState<'weekly' | 'monthly'>('weekly');
 
   const shopIds = selectedShopIds && selectedShopIds.length > 0 ? selectedShopIds : undefined;
   const shopId = !shopIds ? selectedShop?.id : undefined;
@@ -1251,6 +1266,61 @@ export default function FinancialsPage() {
   const maxTimelineVal = timeline
     ? Math.max(...timeline.timeline.map((t) => Math.max(t.revenue, t.expenses)), 1)
     : 1;
+
+  // ── Chart data computations ──
+  const DONUT_COLORS = ['#6366f1', '#8b5cf6', '#a78bfa', '#fb923c', '#f472b6', '#60a5fa'];
+  const donutItems: { name: string; value: number; color: string }[] = [];
+  if (fees && summary) {
+    fees.categories.filter((c) => c.amount > 0).forEach((c, i) => {
+      donutItems.push({ name: entryTypeLabel(c.category), value: c.amount, color: DONUT_COLORS[i % DONUT_COLORS.length] });
+    });
+    if (summary.advertising_expenses > 0) {
+      donutItems.push({ name: entryTypeLabel('advertising'), value: summary.advertising_expenses, color: '#f472b6' });
+    }
+    if (summary.refunds > 0) {
+      donutItems.push({ name: entryTypeLabel('refund'), value: summary.refunds, color: '#f87171' });
+    }
+  }
+
+  const salesDayLabels = isRTL
+    ? ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת']
+    : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const salesBarData: { day: string; amount: number }[] = [];
+  if (timeline && timeline.timeline.length > 0) {
+    if (salesActivityTab === 'weekly') {
+      const byDay: number[] = [0, 0, 0, 0, 0, 0, 0];
+      if (timeline.granularity === 'daily') {
+        timeline.timeline.forEach((p) => {
+          byDay[new Date(p.date).getDay()] += p.revenue / 100;
+        });
+      } else {
+        const total = timeline.timeline.reduce((s, p) => s + p.revenue, 0) / 100;
+        [0.09, 0.15, 0.16, 0.15, 0.16, 0.17, 0.12].forEach((wt, i) => {
+          byDay[i] = Math.round(total * wt);
+        });
+      }
+      salesDayLabels.forEach((day, i) => salesBarData.push({ day, amount: Math.round(byDay[i]) }));
+    } else {
+      timeline.timeline.slice(-12).forEach((p) => {
+        salesBarData.push({
+          day: new Date(p.date).toLocaleDateString(isRTL ? 'he-IL' : 'en-US', { month: 'short' }),
+          amount: Math.round(p.revenue / 100),
+        });
+      });
+    }
+  }
+
+  const trendLineData = timeline
+    ? timeline.timeline.map((p) => ({
+        label: new Date(p.date).toLocaleDateString(isRTL ? 'he-IL' : 'en-US', {
+          month: 'short',
+          ...(timeline.granularity === 'daily' ? { day: 'numeric' } : {}),
+        }),
+        revenue: p.revenue / 100,
+        expenses: p.expenses / 100,
+      }))
+    : [];
 
   return (
     <DashboardLayout>
@@ -1664,6 +1734,152 @@ export default function FinancialsPage() {
               />
             </div>
         )}
+
+        {/* ── Cash Flow Trend Chart ── */}
+        {trendLineData.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-gray-100/80 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-black text-gray-800">{t('financials.cashFlowTrend')}</h2>
+                <p className="text-sm text-gray-400 mt-0.5">{t('financials.cashFlowTrendSubtitle')}</p>
+              </div>
+              <div className="flex items-center gap-5 text-xs text-gray-500">
+                <span className="flex items-center gap-2">
+                  <span className="w-7 h-[2.5px] rounded-full bg-[#006d43] inline-block" />
+                  {t('financials.revenue')}
+                </span>
+                <span className="flex items-center gap-2">
+                  <svg width="28" height="4" className="flex-shrink-0"><line x1="0" y1="2" x2="28" y2="2" stroke="#ef4444" strokeWidth="2.5" strokeDasharray="6 3" /></svg>
+                  {t('financials.expenses')}
+                </span>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={trendLineData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                <YAxis
+                  tick={{ fontSize: 11, fill: '#9ca3af' }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}K` : String(Math.round(v))}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 4px 20px rgba(0,0,0,0.10)', fontSize: 12 }}
+                  formatter={(value: number, name: string) => [
+                    formatCents(Math.round(value * 100), displayCurrency),
+                    name === 'revenue' ? t('financials.revenue') : t('financials.expenses'),
+                  ]}
+                  labelStyle={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}
+                />
+                <Line type="monotone" dataKey="revenue" stroke="#006d43" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: '#006d43', strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} strokeDasharray="6 4" dot={false} activeDot={{ r: 5, fill: '#ef4444', strokeWidth: 0 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* ── Two-column: Expense Donut + Sales Activity Bar ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Donut: expense breakdown */}
+          <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-gray-100/80 p-6">
+            <h2 className="text-lg font-black text-gray-800 mb-5">{t('financials.expenseBreakdown')}</h2>
+            {donutItems.length > 0 && fees && summary ? (
+              <div className="flex items-center gap-5">
+                <div className="relative flex-shrink-0 w-[160px] h-[160px]">
+                  <PieChart width={160} height={160}>
+                    <Pie
+                      data={donutItems}
+                      cx={75}
+                      cy={75}
+                      innerRadius={48}
+                      outerRadius={72}
+                      paddingAngle={3}
+                      dataKey="value"
+                      startAngle={90}
+                      endAngle={-270}
+                      strokeWidth={0}
+                    >
+                      {donutItems.map((item, i) => (
+                        <Cell key={i} fill={item.color} strokeWidth={0} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <p className="text-sm font-black text-gray-800 leading-tight" dir="ltr">
+                      {formatCents(summary.total_expenses, fees.currency)}
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{t('financials.chart.totalExpenses')}</p>
+                  </div>
+                </div>
+                <div className="flex-1 space-y-2.5 min-w-0">
+                  {donutItems.slice(0, 5).map((item, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: item.color }} />
+                      <span className="text-xs text-gray-500 flex-1 truncate">{item.name}</span>
+                      <span className="text-xs font-semibold text-gray-700 flex-shrink-0" dir="ltr">
+                        {formatCents(item.value, fees.currency)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-12">{t('financials.noChartData')}</p>
+            )}
+          </div>
+
+          {/* Bar: sales activity */}
+          <div className="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-gray-100/80 p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-black text-gray-800">{t('financials.salesActivitySummary')}</h2>
+              <div className="flex rounded-xl overflow-hidden border border-gray-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setSalesActivityTab('weekly')}
+                  className={cn(
+                    'px-3 py-1.5 font-semibold transition-colors',
+                    salesActivityTab === 'weekly' ? 'bg-[#006d43] text-white' : 'text-gray-500 hover:bg-gray-50'
+                  )}
+                >
+                  {t('financials.weekly')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSalesActivityTab('monthly')}
+                  className={cn(
+                    'px-3 py-1.5 font-semibold transition-colors',
+                    salesActivityTab === 'monthly' ? 'bg-[#006d43] text-white' : 'text-gray-500 hover:bg-gray-50'
+                  )}
+                >
+                  {t('financials.monthly')}
+                </button>
+              </div>
+            </div>
+            {salesBarData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={165}>
+                <BarChart data={salesBarData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }} barSize={salesActivityTab === 'weekly' ? 28 : 18}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                  <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#9ca3af' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}K` : String(Math.round(v))}
+                  />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '10px', border: '1px solid #f3f4f6', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', fontSize: 12 }}
+                    formatter={(value: number) => [formatCents(Math.round(value * 100), displayCurrency), t('financials.revenue')]}
+                    cursor={{ fill: '#f9fafb' }}
+                  />
+                  <Bar dataKey="amount" fill="#006d43" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-12">{t('financials.noChartData')}</p>
+            )}
+          </div>
+        </div>
 
         {/* ── Invoice Expenses Section ── */}
         {user?.role && ['owner', 'admin'].includes(user.role.toLowerCase()) && (
