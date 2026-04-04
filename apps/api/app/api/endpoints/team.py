@@ -141,7 +141,7 @@ async def invite_team_member(
     tenant_id = context.tenant_id
 
     # Validate role
-    valid_roles = ["owner", "admin", "viewer", "supplier"]
+    valid_roles = ["owner", "admin", "employee", "viewer", "supplier"]
     if request.role not in valid_roles:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -444,7 +444,7 @@ async def update_member_role(
     current_user_role = context.role
 
     # Validate role
-    valid_roles = ["owner", "admin", "viewer", "supplier"]
+    valid_roles = ["owner", "admin", "employee", "viewer", "supplier"]
     if request.role not in valid_roles:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

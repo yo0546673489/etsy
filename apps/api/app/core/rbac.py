@@ -10,6 +10,7 @@ class Role(str, Enum):
     """User roles with hierarchical permissions"""
     OWNER = "owner"
     ADMIN = "admin"
+    EMPLOYEE = "employee"
     VIEWER = "viewer"
     SUPPLIER = "supplier"
 
@@ -106,6 +107,30 @@ ROLE_PERMISSIONS: dict[Role, Set[Permission]] = {
         Permission.VIEW_ANALYTICS,
         Permission.VIEW_REVENUE,
     },
+    Role.EMPLOYEE: {
+        # Everything OWNER has, EXCEPT connecting/disconnecting shops
+        Permission.MANAGE_TEAM,
+        Permission.UPDATE_TENANT_SETTINGS,
+        # Shop (read + manage settings, but NOT connect/disconnect)
+        Permission.MANAGE_SHOP_SETTINGS,
+        # Product
+        Permission.CREATE_PRODUCT,
+        Permission.READ_PRODUCT,
+        Permission.UPDATE_PRODUCT,
+        Permission.DELETE_PRODUCT,
+        # Order
+        Permission.READ_ORDER,
+        Permission.SYNC_ORDER,
+        Permission.ASSIGN_ORDER,
+        Permission.UPDATE_FULFILLMENT,
+        # Audit
+        Permission.READ_AUDIT_LOG,
+        Permission.READ_AUDIT_LOGS,
+        # Analytics
+        Permission.VIEW_ANALYTICS,
+        Permission.VIEW_REVENUE,
+        Permission.VIEW_SUPPLIER_PERFORMANCE,
+    },
     Role.VIEWER: {
         # Read-only access (including analytics)
         Permission.READ_PRODUCT,
@@ -192,7 +217,7 @@ def can_access_shop(role: str, shop_id: int, allowed_shop_ids: List[int]) -> boo
         return shop_id in allowed_shop_ids
 
     # Owner and Admin have access to all shops when no explicit links
-    if role_enum in (Role.OWNER, Role.ADMIN):
+    if role_enum in (Role.OWNER, Role.ADMIN, Role.EMPLOYEE):
         return True
 
     # Viewer and Supplier are restricted to allowed shops
@@ -219,7 +244,7 @@ def get_accessible_shop_ids(role: str, tenant_id: int, allowed_shop_ids: List[in
         return allowed_shop_ids
 
     # Owner and Admin can access all shops in tenant
-    if role_enum in (Role.OWNER, Role.ADMIN):
+    if role_enum in (Role.OWNER, Role.ADMIN, Role.EMPLOYEE):
         from app.models.tenancy import Shop
         all_shops = db.query(Shop.id).filter(Shop.tenant_id == tenant_id).all()
         return [shop.id for shop in all_shops]

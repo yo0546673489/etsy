@@ -441,12 +441,14 @@ function SettingsContent() {
   const getRoleColor = (role: string) => ({
     owner: 'text-[var(--warning)] bg-[var(--warning-bg)]',
     admin: 'text-[var(--primary)] bg-[var(--primary-bg)]',
+    employee: 'text-purple-600 bg-purple-50',
     viewer: 'text-[var(--text-muted)] bg-[var(--background)]',
     supplier: 'text-[var(--success)] bg-[var(--success-bg)]',
   }[role] || 'text-[var(--text-muted)] bg-[var(--background)]');
   const getRoleIcon = (role: string) => ({
     owner: <Crown className="w-4 h-4" />,
     admin: <Shield className="w-4 h-4" />,
+    employee: <Users className="w-4 h-4" />,
     viewer: <Eye className="w-4 h-4" />,
     supplier: <Package className="w-4 h-4" />,
   }[role] || <Users className="w-4 h-4" />);
@@ -735,6 +737,20 @@ function SettingsContent() {
               </div>
 
               <div className="flex gap-4 p-4 bg-[var(--background)] rounded-xl border border-[var(--border-color)]">
+                <div className={cn('flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0', getRoleColor('employee'))}>
+                  {getRoleIcon('employee')}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-[var(--text-primary)]">עובד</h3>
+                  </div>
+                  <p className="text-sm text-[var(--text-muted)]">
+                    גישה מלאה לכל הפיצ'רים — מוצרים, הזמנות, הודעות, ביקורות, הנחות ואוטומציה. אינו יכול לחבר חנויות חדשות.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 p-4 bg-[var(--background)] rounded-xl border border-[var(--border-color)]">
                 <div className={cn('flex items-center justify-center w-10 h-10 rounded-full flex-shrink-0', getRoleColor('viewer'))}>
                   {getRoleIcon('viewer')}
                 </div>
@@ -950,6 +966,7 @@ function SettingsContent() {
                   onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })}
                   className="w-full px-4 py-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                 >
+                  <option value="employee">עובד — גישה מלאה (ללא חיבור חנויות)</option>
                   <option value="admin">מנהל — גישה מלאה לכל</option>
                   <option value="viewer">צופה — צפייה בלבד</option>
                   <option value="supplier">ספק — הזמנות בלבד</option>

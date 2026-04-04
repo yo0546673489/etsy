@@ -287,6 +287,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return '/dashboard/owner';
       case 'admin':
         return '/dashboard/admin';
+      case 'employee':
+        return '/dashboard/owner';
       case 'supplier':
         return '/dashboard/supplier';
       case 'viewer':

@@ -46,6 +46,19 @@ const ownerNavItems: NavItem[] = [
   { name: 'פתיחת חנות חדשה', href: '/stores/new',         icon: Store },
 ];
 
+const employeeNavItems: NavItem[] = [
+  { name: 'nav.dashboard',  href: '/dashboard/owner', icon: LayoutDashboard },
+  { name: 'nav.orders',     href: '/orders',           icon: ShoppingCart },
+  { name: 'nav.products',   href: '/products',         icon: Package },
+  { name: 'nav.analytics',  href: '/analytics',        icon: BarChart3 },
+  { name: 'nav.financials', href: '/financials',       icon: Wallet },
+  { name: 'ביקורות',        href: '/reviews',          icon: Star },
+  { name: 'הנחות',          href: '/discounts',        icon: Tag,           feature: 'discounts' },
+  { name: 'הודעות',         href: '/messages',         icon: MessageCircle, feature: 'messages' },
+  { name: 'אוטומציה',      href: '/automation',       icon: Activity,      feature: 'automations' },
+  // NO "פתיחת חנות חדשה" — employees cannot connect shops
+];
+
 const adminNavItems: NavItem[] = [
   { name: 'nav.dashboard',  href: '/dashboard/admin', icon: LayoutDashboard },
   { name: 'nav.orders',     href: '/orders',           icon: ShoppingCart },
@@ -74,6 +87,7 @@ function getNavItems(role?: string): NavItem[] {
   switch (role?.toLowerCase()) {
     case 'owner':    return ownerNavItems;
     case 'admin':    return adminNavItems;
+    case 'employee': return employeeNavItems;
     case 'supplier': return supplierNavItems;
     case 'viewer':   return viewerNavItems;
     default:         return viewerNavItems;
@@ -161,8 +175,8 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Connect New Shop Button — generates & copies link */}
-      <div className="px-4 pb-2">
+      {/* Connect New Shop Button — hidden for employee role */}
+      {user?.role?.toLowerCase() !== 'employee' && <div className="px-4 pb-2">
         <button
           onClick={handleConnectNewShop}
           disabled={copyState === 'loading'}
@@ -190,7 +204,7 @@ export function Sidebar() {
             </>
           )}
         </button>
-      </div>
+      </div>}
 
       {/* Footer links */}
       <div className="px-4 pb-4 pt-2 border-t border-white/10 mt-2 space-y-1">
