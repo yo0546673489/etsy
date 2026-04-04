@@ -892,32 +892,35 @@ export default function DiscountsPage() {
     const baseDiscount = typeof data.discount_value === 'number' ? data.discount_value : 0;
     const isMulti = targets.length > 1;
 
-    // כבה הנחות פעילות קיימות בכל חנות לפני יצירת הכלל החדש
-    await Promise.allSettled(
-      targets.flatMap(shop =>
-        (rulesByShop[shop.id] || [])
-          .filter(r => r.is_active)
-          .map(r => discountsApi.toggleRule(shop.id, r.id))
-      )
-    );
-
+    // לכל חנות: אם יש כלל פעיל — עדכן אותו. אם אין — צור חדש.
     const results = await Promise.allSettled(
-      targets.map((shop, index) => discountsApi.createRule(shop.id, {
-        ...data,
-        discount_value: isMulti ? varyDiscount(baseDiscount) : baseDiscount,
-        etsy_sale_name: isMulti ? pickSaleName(data.etsy_sale_name ?? undefined) : data.etsy_sale_name,
-        ...(isMulti ? { start_offset_minutes: offsets[index] } : {}),
-      }))
+      targets.map((shop, index) => {
+        const ruleData = {
+          ...data,
+          discount_value: isMulti ? varyDiscount(baseDiscount) : baseDiscount,
+          etsy_sale_name: isMulti ? pickSaleName(data.etsy_sale_name ?? undefined) : data.etsy_sale_name,
+          ...(isMulti ? { start_offset_minutes: offsets[index] } : {}),
+        };
+        const existingActive = (rulesByShop[shop.id] || []).find(r => r.is_active);
+        if (existingActive) {
+          return discountsApi.updateRule(shop.id, existingActive.id, ruleData);
+        }
+        return discountsApi.createRule(shop.id, ruleData);
+      })
     );
     const succeeded = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.length - succeeded;
-    // עדכן state — כבה כללים ישנים + הוסף חדש
+    // עדכן state
     const newRules: Record<number, DiscountRule[]> = {};
     results.forEach((r, i) => {
       if (r.status === 'fulfilled') {
         const sid = targets[i].id;
-        const deactivated = (rulesByShop[sid] || []).map(old => ({ ...old, is_active: false, status: 'paused' as const }));
-        newRules[sid] = [r.value, ...deactivated];
+        const updated = (r as PromiseFulfilledResult<DiscountRule>).value;
+        const existing = rulesByShop[sid] || [];
+        const alreadyIn = existing.find(x => x.id === updated.id);
+        newRules[sid] = alreadyIn
+          ? existing.map(x => x.id === updated.id ? updated : x)
+          : [updated, ...existing];
       }
     });
     setRulesByShop(prev => ({ ...prev, ...newRules }));
