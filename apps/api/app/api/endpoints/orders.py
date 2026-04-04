@@ -75,8 +75,8 @@ async def get_order_stats(
     elif shop_id:
         ensure_shop_access(shop_id, context, db)
         base_query = base_query.filter(Order.shop_id == shop_id)
-    if context.role.lower() == "supplier":
-        base_query = base_query.filter(Order.supplier_user_id == context.user_id)
+    if context.role.lower() == "supplier" and context.allowed_shop_ids:
+        base_query = base_query.filter(Order.shop_id.in_(context.allowed_shop_ids))
 
     # Get total order count
     total_orders = base_query.count()
@@ -189,8 +189,8 @@ async def list_orders(
         ensure_shop_access(shop_id, context, db)
         query = query.filter(Order.shop_id == shop_id)
 
-    if context.role.lower() == "supplier":
-        query = query.filter(Order.supplier_user_id == context.user_id)
+    if context.role.lower() == "supplier" and context.allowed_shop_ids:
+        query = query.filter(Order.shop_id.in_(context.allowed_shop_ids))
 
     # Apply filters
     if status:
