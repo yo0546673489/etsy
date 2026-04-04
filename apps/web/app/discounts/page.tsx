@@ -833,12 +833,47 @@ export default function DiscountsPage() {
   const handleBulkCreate = async (data: Partial<DiscountRule>) => {
     const targets = actionableShops;
     if (!targets.length) return;
-    // פיזור: כשיש יותר מחנות אחת — כל חנות מקבלת דחייה של 30 דקות
-    // חנות 0 = עכשיו, חנות 1 = +30 דקות, חנות 2 = +60 דקות וכו'
+
+    // פיזור זמנים אקראי: כל חנות מקבלת שעה אקראית שונה במהלך היום
+    // יוצרים N נקודות זמן אקראיות (בדקות) ומסדרים אותן
+    const generateRandomOffsets = (count: number): number[] => {
+      if (count <= 1) return [0];
+      // פיזור על פני 16 שעות (960 דקות) עם מינימום 20 דקות בין חנויות
+      const offsets: number[] = [];
+      const used = new Set<number>();
+      for (let i = 0; i < count; i++) {
+        let offset: number;
+        let attempts = 0;
+        do {
+          // כל חנות מקבלת slot אקראי בין i*40 ל-(i+1)*40 + jitter
+          offset = Math.floor(i * 40 + Math.random() * 40);
+          attempts++;
+        } while (used.has(offset) && attempts < 20);
+        used.add(offset);
+        offsets.push(offset);
+      }
+      return offsets.sort((a, b) => a - b);
+    };
+
+    // וריאציה קלה באחוז ההנחה — הרוב שונים קצת, מעטים זהים
+    const varyDiscount = (base: number): number => {
+      if (base <= 0) return base;
+      const roll = Math.random();
+      if (roll < 0.25) return base;                          // 25% — זהה לבסיס
+      if (roll < 0.55) return Math.max(1, base - 1);        // 30% — פחות 1%
+      if (roll < 0.80) return Math.min(75, base + 1);       // 25% — פלוס 1%
+      if (roll < 0.92) return Math.max(1, base - 2);        // 12% — פחות 2%
+      return Math.min(75, base + 2);                        // 8%  — פלוס 2%
+    };
+
+    const offsets = generateRandomOffsets(targets.length);
+    const baseDiscount = typeof data.discount_value === 'number' ? data.discount_value : 0;
+
     const results = await Promise.allSettled(
       targets.map((shop, index) => discountsApi.createRule(shop.id, {
         ...data,
-        ...(targets.length > 1 ? { start_offset_minutes: index * 30 } : {}),
+        discount_value: targets.length > 1 ? varyDiscount(baseDiscount) : baseDiscount,
+        ...(targets.length > 1 ? { start_offset_minutes: offsets[index] } : {}),
       }))
     );
     const succeeded = results.filter(r => r.status === 'fulfilled').length;
