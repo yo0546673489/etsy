@@ -103,21 +103,8 @@ export function TopBar() {
           {shops.find(s => selectedShopIds.includes(s.id))?.display_name || user?.name || 'Profitly'}
         </div>
 
-        {/* 2nd: Search bar */}
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-            <button
-              onClick={() => setShowSearchModal(true)}
-              className="w-full pr-10 pl-24 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-[var(--text-muted)] hover:border-[var(--primary)] transition text-right text-sm"
-            >
-              חיפוש בלוח הבקרה...
-            </button>
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5 bg-[var(--card-bg)] border border-[var(--border-color)] rounded text-xs text-[var(--text-muted)]">
-              <span>K</span><span className="text-[10px]">⌘</span>
-            </div>
-          </div>
-        </div>
+        {/* 2nd: flex spacer */}
+        <div className="flex-1" />
 
         {/* 3rd: Shop selector + Language */}
         <div className="flex items-center gap-2 flex-shrink-0">
