@@ -130,7 +130,7 @@ function OrdersContent() {
   const { showToast } = useToast();
   const { selectedShopId, selectedShopIds, shops } = useShop();
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<OrderStats | null>(null);
@@ -276,14 +276,14 @@ function OrdersContent() {
   ];
 
   return (
-    <div className="max-w-[1400px] mx-auto space-y-6" dir="rtl">
+    <div className="max-w-[1400px] mx-auto space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       <DisconnectedShopBanner />
 
       {/* ── כותרת ── */}
       <div className="flex items-start justify-between">
         <div className="text-right">
-          <h1 className="text-3xl font-black text-gray-800">ניהול הזמנות</h1>
-          <p className="text-gray-400 mt-1 text-sm">סקירה כללית של הפעילות העסקית והמכירות שלך היום.</p>
+          <h1 className="text-3xl font-black text-gray-800">{t('orders.management')}</h1>
+          <p className="text-gray-400 mt-1 text-sm">{t('orders.managementSubtitle')}</p>
         </div>
         {(user?.role === 'owner' || user?.role === 'admin') && (
           <button
@@ -292,7 +292,7 @@ function OrdersContent() {
             className="flex items-center gap-2 px-5 py-2.5 bg-[#006d43] hover:bg-[#005a37] text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-50"
           >
             <Plus className={cn('w-4 h-4', syncing && 'animate-spin')} />
-            {syncing ? 'מסנכרן...' : 'סנכרן הזמנות'}
+            {syncing ? t('orders.syncing') : t('orders.syncOrders')}
           </button>
         )}
       </div>
@@ -322,7 +322,7 @@ function OrdersContent() {
           <h2 className="text-lg font-black text-gray-800">עסקאות אחרונות</h2>
           <div className="flex items-center gap-3 flex-wrap">
             {/* חיפוש */}
-            <div dir="rtl">
+            <div dir={isRTL ? 'rtl' : 'ltr'}>
               <SearchInput
                 placeholder="חפש הזמנה..."
                 value={searchQuery}
@@ -359,7 +359,7 @@ function OrdersContent() {
             </div>
           ) : filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <p className="text-gray-400 text-lg">אין הזמנות להצגה</p>
+              <p className="text-gray-400 text-lg">{t('orders.noOrders')}</p>
               {searchQuery && <p className="text-gray-400 text-sm mt-2">נסה לשנות את החיפוש</p>}
             </div>
           ) : (

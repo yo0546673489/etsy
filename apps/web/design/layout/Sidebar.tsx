@@ -39,11 +39,11 @@ const ownerNavItems: NavItem[] = [
   { name: 'nav.products',   href: '/products',         icon: Package },
   { name: 'nav.analytics',  href: '/analytics',        icon: BarChart3 },
   { name: 'nav.financials', href: '/financials',       icon: Wallet },
-  { name: 'ביקורות',        href: '/reviews',              icon: Star },
-  { name: 'הנחות',          href: '/discounts',            icon: Tag,           feature: 'discounts' },
-  { name: 'הודעות',         href: '/messages',             icon: MessageCircle, feature: 'messages' },
-  { name: 'אוטומציה',      href: '/automation',           icon: Activity,      feature: 'automations' },
-  { name: 'פתיחת חנות חדשה', href: '/stores/new',         icon: Store },
+  { name: 'sidebar.reviews',   href: '/reviews',   icon: Star },
+  { name: 'sidebar.discounts', href: '/discounts', icon: Tag,           feature: 'discounts' },
+  { name: 'sidebar.messages',  href: '/messages',  icon: MessageCircle, feature: 'messages' },
+  { name: 'sidebar.automation',href: '/automation',icon: Activity,      feature: 'automations' },
+  { name: 'sidebar.newStore',  href: '/stores/new',icon: Store },
 ];
 
 const employeeNavItems: NavItem[] = [
@@ -52,11 +52,11 @@ const employeeNavItems: NavItem[] = [
   { name: 'nav.products',   href: '/products',         icon: Package },
   { name: 'nav.analytics',  href: '/analytics',        icon: BarChart3 },
   { name: 'nav.financials', href: '/financials',       icon: Wallet },
-  { name: 'ביקורות',        href: '/reviews',          icon: Star },
-  { name: 'הנחות',          href: '/discounts',        icon: Tag,           feature: 'discounts' },
-  { name: 'הודעות',         href: '/messages',         icon: MessageCircle, feature: 'messages' },
-  { name: 'אוטומציה',      href: '/automation',       icon: Activity,      feature: 'automations' },
-  // NO "פתיחת חנות חדשה" — employees cannot connect shops
+  { name: 'sidebar.reviews',   href: '/reviews',   icon: Star },
+  { name: 'sidebar.discounts', href: '/discounts', icon: Tag,           feature: 'discounts' },
+  { name: 'sidebar.messages',  href: '/messages',  icon: MessageCircle, feature: 'messages' },
+  { name: 'sidebar.automation',href: '/automation',icon: Activity,      feature: 'automations' },
+  // NO "sidebar.newStore" — employees cannot connect shops
 ];
 
 const adminNavItems: NavItem[] = [
@@ -65,11 +65,11 @@ const adminNavItems: NavItem[] = [
   { name: 'nav.products',   href: '/products',         icon: Package },
   { name: 'nav.analytics',  href: '/analytics',        icon: BarChart3 },
   { name: 'nav.financials', href: '/financials',       icon: Wallet },
-  { name: 'ביקורות',        href: '/reviews',          icon: Star },
-  { name: 'הנחות',          href: '/discounts',        icon: Tag,           feature: 'discounts' },
-  { name: 'הודעות',         href: '/messages',         icon: MessageCircle, feature: 'messages' },
-  { name: 'אוטומציה',      href: '/automation',       icon: Activity,      feature: 'automations' },
-  { name: 'פתיחת חנות חדשה', href: '/stores/new',     icon: Store },
+  { name: 'sidebar.reviews',   href: '/reviews',   icon: Star },
+  { name: 'sidebar.discounts', href: '/discounts', icon: Tag,           feature: 'discounts' },
+  { name: 'sidebar.messages',  href: '/messages',  icon: MessageCircle, feature: 'messages' },
+  { name: 'sidebar.automation',href: '/automation',icon: Activity,      feature: 'automations' },
+  { name: 'sidebar.newStore',  href: '/stores/new',icon: Store },
 ];
 
 const supplierNavItems: NavItem[] = [
@@ -134,7 +134,7 @@ export function Sidebar() {
     }
   };
 
-  const shopName = selectedShop?.display_name || user?.name || 'החנות שלי';
+  const shopName = selectedShop?.display_name || user?.name || t('sidebar.myShop');
 
   return (
     <aside className="flex flex-col w-[260px] min-h-screen bg-[#006d43] text-white flex-shrink-0 shadow-2xl">
@@ -190,17 +190,17 @@ export function Sidebar() {
           {copyState === 'copied' ? (
             <>
               <Check className="w-4 h-4" />
-              הקישור הועתק!
+              {t('sidebar.linkCopied')}
             </>
           ) : copyState === 'loading' ? (
             <>
               <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin" />
-              יוצר קישור...
+              {t('sidebar.creatingLink')}
             </>
           ) : (
             <>
               <LinkIcon className="w-4 h-4" />
-              חבר חנות חדשה
+              {t('sidebar.connectShop')}
             </>
           )}
         </button>
@@ -218,21 +218,21 @@ export function Sidebar() {
           )}
         >
           <Settings className="w-4 h-4" />
-          <span>הגדרות</span>
+          <span>{t('sidebar.settings')}</span>
         </Link>
         <Link
           href="/docs"
           className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-colors text-sm"
         >
           <HelpCircle className="w-4 h-4" />
-          <span>עזרה</span>
+          <span>{t('sidebar.help')}</span>
         </Link>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-colors text-sm"
         >
           <LogOut className="w-4 h-4" />
-          <span>יציאה</span>
+          <span>{t('sidebar.logout')}</span>
         </button>
       </div>
     </aside>

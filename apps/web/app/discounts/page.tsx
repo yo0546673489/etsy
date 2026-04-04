@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useShop } from '@/lib/shop-context';
 import { useToast } from '@/lib/toast-context';
+import { useLanguage } from '@/lib/language-context';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { discountsApi, type DiscountRule, type DiscountTask } from '@/lib/api';
 import {
@@ -142,6 +143,7 @@ function DiscountModal({ initial, onClose, onSave }: {
   onClose: () => void;
   onSave: (data: Partial<DiscountRule>, activate: boolean) => Promise<void>;
 }) {
+  const { isRTL } = useLanguage();
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState(initial?.name || '');
   // auto/manual toggle
@@ -217,7 +219,7 @@ function DiscountModal({ initial, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-800">{initial ? 'עריכת הנחה' : 'הנחה חדשה'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
@@ -419,6 +421,7 @@ function BulkActionModal({ shopCount, onClose, onApplyAll, onDeactivateAll }: {
   onApplyAll: (data: Partial<DiscountRule>) => Promise<void>;
   onDeactivateAll: () => Promise<void>;
 }) {
+  const { isRTL } = useLanguage();
   const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState<'new' | 'deactivate'>('new');
   const [name, setName] = useState('');
@@ -490,7 +493,7 @@ function BulkActionModal({ shopCount, onClose, onApplyAll, onDeactivateAll }: {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" dir={isRTL ? 'rtl' : 'ltr'}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <div>
@@ -709,6 +712,7 @@ function shopSortKey(name: string) {
 export default function DiscountsPage() {
   const { shops, selectedShop, selectedShops } = useShop();
   const { showToast } = useToast();
+  const { isRTL } = useLanguage();
 
   const [tab, setTab] = useState('all');
   // map: shopId → rules
@@ -879,7 +883,7 @@ export default function DiscountsPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1200px] mx-auto space-y-6" dir="rtl">
+      <div className="max-w-[1200px] mx-auto space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
 
         {/* Header */}
         <div className="flex items-center justify-between">

@@ -81,7 +81,7 @@ function StatCard({ badge, badgeColor, icon: Icon, iconBg, iconColor, label, val
 function OwnerDashboardContent() {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const { selectedShop, selectedShopIds, shops, isLoading: shopLoading } = useShop();
   const { currency: displayCurrency, setCurrency } = useCurrency();
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -163,7 +163,7 @@ function OwnerDashboardContent() {
   const depositAmount     = stats.display_deposit_amount ?? depositAmountRaw;  // prefer converted
   const monthlyNetProfitRaw = stats.monthly_net_profit ?? null;
   const monthlyNetProfit  = stats.display_monthly_net_profit ?? monthlyNetProfitRaw;
-  const payoutLabel       = stats.payout_label || 'יתרה נוכחית';
+  const payoutLabel       = stats.payout_label || t('dashboard.currentBalance');
   const totalOrders       = stats.total_orders || 0;
   const totalViews        = stats.total_views || 0;
   const todayVisits    = stats.today_visits || 0;
@@ -196,7 +196,7 @@ function OwnerDashboardContent() {
   };
 
   return (
-    <div className="max-w-[1300px] mx-auto space-y-6">
+    <div className="max-w-[1300px] mx-auto space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       <Suspense fallback={null}><WelcomeHandler /></Suspense>
       <DisconnectedShopBanner />
 
@@ -208,9 +208,9 @@ function OwnerDashboardContent() {
       <div className="flex items-start justify-between">
         {/* 1st = visual RIGHT: Greeting */}
         <div className="text-right">
-          <h1 className="text-3xl font-black text-gray-800">ברוך שובר!</h1>
+          <h1 className="text-3xl font-black text-gray-800">{t('dashboard.welcome')}</h1>
           <p className="text-gray-400 mt-1 text-sm">
-            {shopName} - הנה עדכון על מה שקורה בחנות שלך היום.
+            {shopName} - {t('dashboard.welcomeSubtitle')}
           </p>
         </div>
 
@@ -240,7 +240,7 @@ function OwnerDashboardContent() {
           icon={CreditCard}
           iconBg="bg-purple-50"
           iconColor="text-purple-500"
-          label="כסף משוחרר לבנק"
+          label={t('dashboard.availableForDeposit')}
           value={formatCurrencyWith(depositAmount ?? 0, convertedPayoutCurrency || shopCurrency)}
         />
         {/* 3rd: מספר הזמנות */}
@@ -250,7 +250,7 @@ function OwnerDashboardContent() {
           icon={ShoppingBag}
           iconBg="bg-green-50"
           iconColor="text-[#006d43]"
-          label="מספר הזמנות"
+          label={t('dashboard.numberOfOrders')}
           value={totalOrders}
         />
         {/* 4th = LEFTMOST: צפיות בחנות */}
@@ -260,7 +260,7 @@ function OwnerDashboardContent() {
           icon={Eye}
           iconBg="bg-orange-50"
           iconColor="text-orange-400"
-          label="צפיות בחנות"
+          label={t('dashboard.shopViews')}
           value={shopViews === null ? '—' : formatCompact(shopViews)}
         />
       </div>
@@ -276,23 +276,23 @@ function OwnerDashboardContent() {
         <div className="lg:col-span-8 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-center justify-between mb-5">
             {/* In RTL: first=RIGHT, second=LEFT */}
-            <h2 className="text-lg font-black text-gray-800">הזמנות אחרונות</h2>
+            <h2 className="text-lg font-black text-gray-800">{t('dashboard.recentOrders')}</h2>
             <Link href="/orders" className="text-sm text-[#006d43] font-bold hover:underline">
-              הצג הכל
+              {t('dashboard.viewAll')}
             </Link>
           </div>
 
           {recentOrders.length === 0 ? (
-            <p className="text-gray-400 text-center py-10">אין הזמנות להצגה</p>
+            <p className="text-gray-400 text-center py-10">{t('dashboard.noOrders')}</p>
           ) : (
             <table className="w-full text-right">
               <thead>
                 <tr className="text-gray-400 text-xs border-b border-gray-100">
-                  <th className="pb-3 font-semibold">מספר הזמנה</th>
-                  <th className="pb-3 font-semibold">חנות</th>
-                  <th className="pb-3 font-semibold">תאריך</th>
-                  <th className="pb-3 font-semibold">סטטוס</th>
-                  <th className="pb-3 font-semibold text-left">סכום</th>
+                  <th className="pb-3 font-semibold">{t('dashboard.orderNumber')}</th>
+                  <th className="pb-3 font-semibold">{t('dashboard.shop')}</th>
+                  <th className="pb-3 font-semibold">{t('dashboard.orderDate')}</th>
+                  <th className="pb-3 font-semibold">{t('dashboard.orderStatus')}</th>
+                  <th className="pb-3 font-semibold text-left">{t('dashboard.orderAmount')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -334,7 +334,7 @@ function OwnerDashboardContent() {
           <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full pointer-events-none" />
           <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/5 rounded-full pointer-events-none" />
           {/* In RTL: title on RIGHT */}
-          <h3 className="text-lg font-black mb-5 relative z-10 text-right">פעולות מהירות</h3>
+          <h3 className="text-lg font-black mb-5 relative z-10 text-right">{t('dashboard.quickActions')}</h3>
           <div className="grid grid-cols-2 gap-3 relative z-10">
             {/* In RTL grid: first=visual RIGHT */}
             <Link
@@ -344,7 +344,7 @@ function OwnerDashboardContent() {
               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                 <Plus className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xs font-bold text-white">מוצר חדש</span>
+              <span className="text-xs font-bold text-white">{t('dashboard.action.newProduct')}</span>
             </Link>
             <Link
               href="/orders"
@@ -353,7 +353,7 @@ function OwnerDashboardContent() {
               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                 <Truck className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xs font-bold text-white">משלוח</span>
+              <span className="text-xs font-bold text-white">{t('dashboard.action.shipping')}</span>
             </Link>
             <Link
               href="/marketing"
@@ -362,7 +362,7 @@ function OwnerDashboardContent() {
               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                 <Tag className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xs font-bold text-white">קופון</span>
+              <span className="text-xs font-bold text-white">{t('dashboard.action.coupon')}</span>
             </Link>
             <Link
               href="/dashboard/messages"
@@ -371,7 +371,7 @@ function OwnerDashboardContent() {
               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                 <Mail className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xs font-bold text-white">הודעה</span>
+              <span className="text-xs font-bold text-white">{t('dashboard.action.message')}</span>
             </Link>
           </div>
         </div>

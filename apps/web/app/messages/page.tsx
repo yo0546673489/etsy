@@ -7,6 +7,7 @@ import {
   MsgConversation, MsgMessage, MsgStore,
 } from '@/lib/messages-api';
 import { useShop } from '@/lib/shop-context';
+import { useLanguage } from '@/lib/language-context';
 import MsgAvatar from '@/components/messages/MsgAvatar';
 import MsgConversationItem from '@/components/messages/MsgConversationItem';
 import MsgBubble from '@/components/messages/MsgBubble';
@@ -26,6 +27,7 @@ const statusLabels: Record<string, string> = {
 
 export default function MessagesPage() {
   const { selectedShops, shops } = useShop();
+  const { isRTL } = useLanguage();
   const [msgStores, setMsgStores] = useState<MsgStore[]>([]);
   const [conversations, setConversations] = useState<MsgConversation[]>([]);
   const [convLoading, setConvLoading] = useState(true);
@@ -186,7 +188,7 @@ export default function MessagesPage() {
 
   return (
     <DashboardLayout>
-      <div className="-m-6 flex h-full overflow-hidden bg-gray-50" dir="rtl" style={{ minHeight: 0 }}>
+      <div className="-m-6 flex h-full overflow-hidden bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'} style={{ minHeight: 0 }}>
 
         {/* ── RIGHT PANEL: Conversation List ── */}
         <div className={`flex flex-col bg-white border-l border-gray-100 shadow-sm
@@ -399,7 +401,7 @@ export default function MessagesPage() {
                     placeholder="הקלד את ההודעה שלך כאן..."
                     disabled={sending}
                     rows={1}
-                    dir="rtl"
+                    dir={isRTL ? 'rtl' : 'ltr'}
                     className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 resize-none focus:outline-none disabled:opacity-50"
                     style={{ minHeight: '24px', maxHeight: '100px' }}
                   />

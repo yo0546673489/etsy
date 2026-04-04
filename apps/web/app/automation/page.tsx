@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useLanguage } from '@/lib/language-context';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { cn } from '@/lib/utils';
 import {
@@ -103,6 +104,7 @@ function statusBadge(s: string) {
 }
 
 export default function AutomationDashboard() {
+  const { isRTL } = useLanguage();
   const [data, setData] = useState<StatusData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -136,7 +138,7 @@ export default function AutomationDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6 max-w-[1100px] mx-auto" dir="rtl">
+      <div className="p-6 space-y-6 max-w-[1100px] mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
 
         {/* Header */}
         <div className="flex items-center justify-between">

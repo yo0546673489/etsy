@@ -6,6 +6,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { ordersApi, OrderDetail } from '@/lib/api';
 import { useToast } from '@/lib/toast-context';
 import { useAuth } from '@/lib/auth-context';
+import { useLanguage } from '@/lib/language-context';
 import { normalizeOrderStatus, normalizePaymentStatus } from '@/lib/order-status';
 import {
   ArrowRight,
@@ -61,6 +62,7 @@ export default function OrderDetailPage() {
   const params = useParams();
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { isRTL } = useLanguage();
   const orderId = Number(params.id);
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -149,7 +151,7 @@ export default function OrderDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto px-6 py-8" dir="rtl">
+      <div className="max-w-4xl mx-auto px-6 py-8" dir={isRTL ? 'rtl' : 'ltr'}>
 
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">

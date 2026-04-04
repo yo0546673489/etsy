@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { useLanguage } from '@/lib/language-context'
 import { useResearchWebSocket } from '@/hooks/useResearchWebSocket'
 import ResearchProgress from '@/components/new-store/ResearchProgress'
 import ProductList from '@/components/new-store/ProductList'
@@ -15,6 +16,7 @@ interface Props {
 
 export default function ResearchResultsPage({ params }: Props) {
   const { jobId } = params
+  const { isRTL } = useLanguage()
   const { status, progress, currentStep, products, selectedNiche, errorMessage } = useResearchWebSocket(jobId)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showUploadSettings, setShowUploadSettings] = useState(false)
@@ -23,7 +25,7 @@ export default function ResearchResultsPage({ params }: Props) {
 
   return (
     <DashboardLayout>
-    <div className="text-white" dir="rtl">
+    <div className="text-white" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="max-w-6xl mx-auto px-6 py-10">
 
         <div className="flex items-center justify-between mb-8">

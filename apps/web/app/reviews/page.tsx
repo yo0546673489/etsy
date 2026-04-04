@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useShop } from '@/lib/shop-context';
 import { useToast } from '@/lib/toast-context';
+import { useLanguage } from '@/lib/language-context';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { reviewsApi, type Review, type ReviewStats } from '@/lib/api';
 import { Star, RefreshCw, MessageSquare, TrendingUp, ThumbsUp, Pencil, Trash2, Check, X } from 'lucide-react';
@@ -99,6 +100,7 @@ function ReviewCard({ review, onResponseSaved }: {
   onResponseSaved: (id: number, response: string | null) => void;
 }) {
   const { showToast } = useToast();
+  const { isRTL } = useLanguage();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(review.seller_response || '');
   const [saving, setSaving] = useState(false);
@@ -201,7 +203,7 @@ function ReviewCard({ review, onResponseSaved }: {
                 placeholder="כתוב תגובה ללקוח..."
                 rows={3}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#006d43] resize-none text-right"
-                dir="rtl"
+                dir={isRTL ? 'rtl' : 'ltr'}
               />
               <div className="flex gap-2 mt-2 justify-end">
                 <button
@@ -238,6 +240,7 @@ function ReviewCard({ review, onResponseSaved }: {
 export default function ReviewsPage() {
   const { selectedShop, selectedShopIds } = useShop();
   const { showToast } = useToast();
+  const { isRTL } = useLanguage();
 
   const [stats, setStats] = useState<ReviewStats | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -318,7 +321,7 @@ export default function ReviewsPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1300px] mx-auto space-y-6" dir="rtl">
+      <div className="max-w-[1300px] mx-auto space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

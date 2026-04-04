@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { useLanguage } from '@/lib/language-context'
 import StartResearchForm from '@/components/new-store/StartResearchForm'
 import { Info, Clock } from 'lucide-react'
 
@@ -17,6 +18,7 @@ const STEPS = [
 
 export default function NewStorePage() {
   const router = useRouter()
+  const { isRTL } = useLanguage()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,7 +42,7 @@ export default function NewStorePage() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-full bg-[#f0f2f5]" dir="rtl">
+      <div className="min-h-full bg-[#f0f2f5]" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="max-w-5xl mx-auto px-6 py-10">
 
           {/* Page header */}
