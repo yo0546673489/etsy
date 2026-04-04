@@ -9,6 +9,8 @@ Etsy is returning errors.
     OPEN    ──(cooldown elapsed)──────>    HALF_OPEN
     HALF_OPEN ──(probe succeeds)──────>   CLOSED
     HALF_OPEN ──(probe fails)─────────>   OPEN
+
+State is persisted in Redis so worker restarts do NOT reset the breaker.
 """
 import time
 import logging
@@ -57,6 +59,9 @@ class CircuitBreaker:
     """
     In-process circuit breaker keyed by ``shop_id``.
 
+    State is backed by Redis so it survives worker restarts.
+    Falls back to in-memory if Redis is unavailable.
+
     Parameters
     ----------
     failure_threshold : int
@@ -65,14 +70,69 @@ class CircuitBreaker:
         How long the circuit stays open before moving to half-open.
     """
 
+    REDIS_KEY_PREFIX = "cb:shop:"
+    REDIS_TTL = 3600  # keep state for 1 hour max
+
     def __init__(
         self,
         failure_threshold: int = 5,
-        cooldown_seconds: float = 60.0,
+        cooldown_seconds: float = 300.0,  # 5 minutes (was 60s)
     ) -> None:
         self.failure_threshold = failure_threshold
         self.cooldown_seconds = cooldown_seconds
         self._circuits: dict[int, _ShopCircuit] = {}
+        self._redis = None
+
+    def _get_redis(self):
+        if self._redis is None:
+            try:
+                from app.core.redis import get_redis_client
+                self._redis = get_redis_client()
+            except Exception:
+                pass
+        return self._redis
+
+    # ------------------------------------------------------------------
+    # Redis persistence
+    # ------------------------------------------------------------------
+
+    def _redis_key(self, shop_id: int) -> str:
+        return f"{self.REDIS_KEY_PREFIX}{shop_id}"
+
+    def _load_from_redis(self, shop_id: int, circuit: _ShopCircuit) -> None:
+        """Load circuit state from Redis into the in-memory circuit object."""
+        redis = self._get_redis()
+        if not redis:
+            return
+        try:
+            import json
+            raw = redis.get(self._redis_key(shop_id))
+            if not raw:
+                return
+            data = json.loads(raw)
+            circuit.state = CircuitState(data.get("state", CircuitState.CLOSED))
+            circuit.consecutive_failures = data.get("consecutive_failures", 0)
+            circuit.last_failure_time = data.get("last_failure_time", 0.0)
+            circuit.last_success_time = data.get("last_success_time", 0.0)
+        except Exception as _e:
+            logger.debug(f"[circuit_breaker] Redis load failed for shop {shop_id}: {_e!r}")
+
+    def _save_to_redis(self, shop_id: int, circuit: _ShopCircuit) -> None:
+        """Persist circuit state to Redis."""
+        redis = self._get_redis()
+        if not redis:
+            return
+        try:
+            import json
+            data = {
+                "state": circuit.state.value,
+                "consecutive_failures": circuit.consecutive_failures,
+                "last_failure_time": circuit.last_failure_time,
+                "last_success_time": circuit.last_success_time,
+            }
+            redis.setex(self._redis_key(shop_id), self.REDIS_TTL, json.dumps(data))
+        except Exception as _e:
+            logger.debug(f"[circuit_breaker] Redis save failed for shop {shop_id}: {_e!r}")
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -80,7 +140,9 @@ class CircuitBreaker:
 
     def _get(self, shop_id: int) -> _ShopCircuit:
         if shop_id not in self._circuits:
-            self._circuits[shop_id] = _ShopCircuit()
+            circuit = _ShopCircuit()
+            self._load_from_redis(shop_id, circuit)
+            self._circuits[shop_id] = circuit
         return self._circuits[shop_id]
 
     def state(self, shop_id: int) -> CircuitState:
@@ -108,6 +170,7 @@ class CircuitBreaker:
             if elapsed >= self.cooldown_seconds:
                 # Transition to half-open — let one probe through
                 circuit.state = CircuitState.HALF_OPEN
+                self._save_to_redis(shop_id, circuit)
                 logger.info(
                     "Circuit breaker HALF_OPEN for shop %s (cooldown elapsed)",
                     shop_id,
@@ -134,6 +197,8 @@ class CircuitBreaker:
             )
             circuit.state = CircuitState.CLOSED
 
+        self._save_to_redis(shop_id, circuit)
+
     def record_failure(self, shop_id: int, status_code: Optional[int] = None) -> None:
         """
         Call after a **failed** Etsy API response (429 or 5xx).
@@ -153,6 +218,7 @@ class CircuitBreaker:
         if circuit.state == CircuitState.HALF_OPEN:
             # Probe failed — go back to open
             circuit.state = CircuitState.OPEN
+            self._save_to_redis(shop_id, circuit)
             logger.warning(
                 "Circuit breaker OPEN for shop %s (probe failed, status=%s)",
                 shop_id,
@@ -162,6 +228,7 @@ class CircuitBreaker:
 
         if circuit.consecutive_failures >= self.failure_threshold:
             circuit.state = CircuitState.OPEN
+            self._save_to_redis(shop_id, circuit)
             logger.warning(
                 "Circuit breaker OPEN for shop %s (%d consecutive failures)",
                 shop_id,
@@ -172,7 +239,13 @@ class CircuitBreaker:
         """Manually reset the circuit (e.g. admin override)."""
         if shop_id in self._circuits:
             del self._circuits[shop_id]
-            logger.info("Circuit breaker RESET for shop %s", shop_id)
+        redis = self._get_redis()
+        if redis:
+            try:
+                redis.delete(self._redis_key(shop_id))
+            except Exception as _e:
+                logger.debug(f"[circuit_breaker] Redis delete failed for shop {shop_id}: {_e!r}")
+        logger.info("Circuit breaker RESET for shop %s", shop_id)
 
 
 # ── Module-level singleton ───────────────────────────────────────
