@@ -28,6 +28,7 @@ from app.models.oauth import OAuthProvider
 from jose.exceptions import JWTError, ExpiredSignatureError
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def _trigger_login_sync(tenant_id: int, db) -> None:
@@ -45,9 +46,8 @@ def _trigger_login_sync(tenant_id: int, db) -> None:
             sync_orders.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
             sync_ledger_entries.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
             sync_payment_details.delay(shop_id=shop.id, tenant_id=shop.tenant_id)
-    except Exception:
-        pass  # Never block login due to sync failure
-logger = logging.getLogger(__name__)
+    except Exception as _e:
+        logger.warning(f"[login_sync] failed to trigger background sync on login: {_e!r}")
 
 
 # List of disposable/temporary email domains to block
@@ -789,8 +789,8 @@ async def upload_profile_picture(
             if os.path.exists(old_file_path):
                 try:
                     os.remove(old_file_path)
-                except Exception:
-                    pass  # Ignore errors deleting old file
+                except Exception as _e:
+                    logger.warning(f"[auth] failed to delete old profile picture {old_file_path}: {_e!r}")
 
         user.profile_picture_url = profile_picture_url
         db.commit()
@@ -833,8 +833,8 @@ async def delete_profile_picture(
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
-            except Exception:
-                pass  # Ignore errors deleting file
+            except Exception as _e:
+                logger.warning(f"[auth] failed to delete profile picture {file_path}: {_e!r}")
 
     user.profile_picture_url = None
     db.commit()

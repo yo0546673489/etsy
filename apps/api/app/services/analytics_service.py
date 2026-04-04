@@ -2,7 +2,7 @@
 Analytics Service
 Provides cached, server-side aggregations for owner/admin dashboards
 """
-
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
@@ -12,6 +12,8 @@ import json
 from app.models.products import Product
 from app.models.orders import Order, ShipmentEvent
 from app.core.redis import get_redis_client
+
+logger = logging.getLogger(__name__)
 
 
 class AnalyticsService:
@@ -50,8 +52,8 @@ class AnalyticsService:
             cached = self.redis.get(cache_key)
             if cached:
                 return json.loads(cached)
-        except Exception:
-            pass
+        except Exception as _e:
+            logger.warning(f"[analytics_cache] Redis get failed: {_e!r}")
         return None
     
     def _set_cached(self, cache_key: str, data: Dict[str, Any]) -> None:
@@ -60,8 +62,8 @@ class AnalyticsService:
             return
         try:
             self.redis.setex(cache_key, self.CACHE_TTL, json.dumps(data))
-        except Exception:
-            pass
+        except Exception as _e:
+            logger.warning(f"[analytics_cache] Redis set failed: {_e!r}")
     
     def _invalidate_cache(self, tenant_id: int, shop_id: Optional[int] = None) -> None:
         """Invalidate all analytics caches for a tenant/shop"""
@@ -72,8 +74,8 @@ class AnalyticsService:
             keys = self.redis.keys(pattern)
             if keys:
                 self.redis.delete(*keys)
-        except Exception:
-            pass
+        except Exception as _e:
+            logger.warning(f"[analytics_cache] Redis invalidate failed: {_e!r}")
     
     def get_overview_analytics(
         self,

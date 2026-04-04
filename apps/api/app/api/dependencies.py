@@ -1,6 +1,7 @@
 """
 API Dependencies - JWT authentication, database sessions, RBAC, etc.
 """
+import logging
 from typing import List, Optional
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -13,6 +14,8 @@ from app.core.database import get_db
 from app.core.security import decode_token
 from app.core.rbac import Permission, Role, has_permission, can_access_shop
 from app.models.tenancy import Membership, Shop, Tenant
+
+logger = logging.getLogger(__name__)
 
 # HTTP Bearer token security — made optional so cookie auth can take over
 security = HTTPBearer(auto_error=False)
@@ -356,7 +359,8 @@ def get_current_user_optional(
         if payload.get("type") == "refresh":
             return None
         return payload
-    except Exception:
+    except Exception as _e:
+        logger.warning(f"[dependencies] get_current_user_optional token decode failed: {_e!r}")
         return None
 
 
@@ -390,7 +394,8 @@ def get_optional_user_context(
             name=current_user.get("name"),
             allowed_shop_ids=allowed_shop_ids,
         )
-    except Exception:
+    except Exception as _e:
+        logger.warning(f"[dependencies] get_optional_user_context failed: {_e!r}")
         return None
 
 

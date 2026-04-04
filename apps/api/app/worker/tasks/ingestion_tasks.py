@@ -174,8 +174,8 @@ def process_ingestion_batch(self, batch_id: str) -> Dict[str, Any]:
                         action_url="/products",
                         action_label="View products",
                     )
-                except Exception:
-                    pass
+                except Exception as _e:
+                    logger.warning(f"[ingestion] notify_tenant_admins failed (batch import error): {_e!r}")
         except Exception as commit_error:
             logger.error(f"Error updating batch status: {str(commit_error)}")
 

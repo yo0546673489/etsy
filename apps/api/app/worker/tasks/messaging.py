@@ -75,7 +75,8 @@ def _get_browser_and_page(cdp_url: str, target_url: str):
     playwright_ctx = sync_playwright().start()
     try:
         browser = playwright_ctx.chromium.connect_over_cdp(cdp_url)
-    except Exception:
+    except Exception as _e:
+        logger.warning(f"[messaging] CDP connect failed: {_e!r}")
         playwright_ctx.stop()
         raise
 
@@ -84,7 +85,8 @@ def _get_browser_and_page(cdp_url: str, target_url: str):
         page = context.pages[0] if context.pages else context.new_page()
         page.goto(target_url, wait_until="networkidle")
         return playwright_ctx, browser, page
-    except Exception:
+    except Exception as _e:
+        logger.warning(f"[messaging] browser page navigation failed: {_e!r}")
         browser.close()
         playwright_ctx.stop()
         raise
@@ -141,7 +143,8 @@ def scrape_conversation(self, thread_id: int):
 
         try:
             cdp_url = adspower.open_profile(profile_id)
-        except Exception:
+        except Exception as _e:
+            logger.warning(f"[messaging] AdsPower open_profile failed for profile_id={profile_id}: {_e!r}")
             messaging_adspower_errors_total.labels(
                 shop_id=str(thread.shop_id),
                 error_type="open_profile_failed",
@@ -241,8 +244,8 @@ def scrape_conversation(self, thread_id: int):
                     action_url="/messages",
                     action_label="View messages",
                 )
-            except Exception:
-                pass
+            except Exception as _e:
+                logger.warning(f"[messaging] notify_tenant_admins failed (scrape error): {_e!r}")
 
         # Retry according to Celery policy
         raise self.retry(exc=exc)
@@ -251,9 +254,8 @@ def scrape_conversation(self, thread_id: int):
         if profile_id:
             try:
                 adspower.close_profile(profile_id)
-            except Exception:
-                # close_profile should already swallow, but guard anyway
-                pass
+            except Exception as _e:
+                logger.warning(f"[messaging] AdsPower close_profile failed for profile_id={profile_id}: {_e!r}")
 
         db.close()
 
@@ -285,7 +287,8 @@ def send_reply(self, thread_id: int, reply_text: str):
 
         try:
             cdp_url = adspower.open_profile(profile_id)
-        except Exception:
+        except Exception as _e:
+            logger.warning(f"[messaging] AdsPower open_profile failed for profile_id={profile_id}: {_e!r}")
             messaging_adspower_errors_total.labels(
                 shop_id=str(thread.shop_id),
                 error_type="open_profile_failed",
@@ -413,8 +416,8 @@ def send_reply(self, thread_id: int, reply_text: str):
                     action_url="/messages",
                     action_label="View messages",
                 )
-            except Exception:
-                pass
+            except Exception as _e:
+                logger.warning(f"[messaging] notify_tenant_admins failed (send_reply error): {_e!r}")
 
         # For send_reply we follow the requested behavior: just retry on error.
         raise self.retry(exc=exc)
@@ -423,8 +426,8 @@ def send_reply(self, thread_id: int, reply_text: str):
         if profile_id:
             try:
                 adspower.close_profile(profile_id)
-            except Exception:
-                pass
+            except Exception as _e:
+                logger.warning(f"[messaging] AdsPower close_profile failed (send_reply) for profile_id={profile_id}: {_e!r}")
         db.close()
 
 

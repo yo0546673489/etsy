@@ -86,8 +86,8 @@ class FinancialService:
             data = self.redis.get(key)
             if data:
                 return json.loads(data)
-        except Exception:
-            pass
+        except Exception as _e:
+            logger.warning(f"[financial_cache] Redis get failed: {_e!r}")
         return None
 
     def _set_cached(self, key: str, data: Any) -> None:
@@ -95,8 +95,8 @@ class FinancialService:
             return
         try:
             self.redis.setex(key, self.CACHE_TTL, json.dumps(data, default=str))
-        except Exception:
-            pass
+        except Exception as _e:
+            logger.warning(f"[financial_cache] Redis set failed: {_e!r}")
 
     # ------------------------------------------------------------------
     #  1. Profit & Loss summary
@@ -127,7 +127,8 @@ class FinancialService:
                 reg.last_seen_at = now
             try:
                 self.db.commit()
-            except Exception:
+            except Exception as _e:
+                logger.warning(f"[financial_service] failed to commit unmapped ledger type fix: {_e!r}")
                 self.db.rollback()
         return 0, []
 
@@ -879,8 +880,8 @@ class FinancialService:
                 total += cost * listing_qty.get(str(lid), 0)
             return total
 
-        except Exception:
-            logger.exception("Failed to calculate product costs")
+        except Exception as _e:
+            logger.error(f"[financial_service] failed to calculate product costs: {_e!r}")
             return 0
 
     # ------------------------------------------------------------------

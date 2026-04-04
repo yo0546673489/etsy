@@ -7,8 +7,11 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 from datetime import datetime, timezone
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Body, Cookie, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -181,20 +184,20 @@ async def delete_customer(tenant_id: int, db: Session = Depends(get_db)):
             for tbl in ["oauth_tokens", "orders", "products", "discount_rules"]:
                 try:
                     db.execute(text(f"DELETE FROM {tbl} WHERE shop_id = :sid"), {"sid": sid})
-                except Exception:
-                    pass
+                except Exception as _e:
+                    logger.warning(f"[control_panel] delete from {tbl} for shop_id={sid} failed: {_e!r}")
         for tbl in ["shops", "notifications", "ingestion_batches", "memberships"]:
             try:
                 db.execute(text(f"DELETE FROM {tbl} WHERE tenant_id = :tid"), {"tid": tenant_id})
-            except Exception:
-                pass
+            except Exception as _e:
+                logger.warning(f"[control_panel] delete from {tbl} for tenant_id={tenant_id} failed: {_e!r}")
         for uid in user_ids:
             other = db.execute(text("SELECT COUNT(*) FROM memberships WHERE user_id = :uid"), {"uid": uid}).scalar()
             if other == 0:
                 try:
                     db.execute(text("DELETE FROM user_preferences WHERE user_id = :uid"), {"uid": uid})
-                except Exception:
-                    pass
+                except Exception as _e:
+                    logger.warning(f"[control_panel] delete user_preferences for user_id={uid} failed: {_e!r}")
                 db.execute(text("DELETE FROM users WHERE id = :uid"), {"uid": uid})
         db.execute(text("DELETE FROM tenants WHERE id = :tid"), {"tid": tenant_id})
         db.commit()

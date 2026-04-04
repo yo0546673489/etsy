@@ -8,9 +8,12 @@ stacked-BaseHTTPMiddleware deadlock when reading the request body.
 import base64
 import hashlib
 import json
+import logging
 import time
 
 from app.core.redis import get_redis_client
+
+logger = logging.getLogger(__name__)
 
 IDEMPOTENCY_METHODS_STR = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -169,8 +172,8 @@ class IdempotencyMiddleware:
             }
             try:
                 redis_client.setex(cache_key, self.ttl_seconds, json.dumps(payload))
-            except Exception:
-                pass  # Don't fail the request if caching fails
+            except Exception as _e:
+                logger.warning(f"[idempotency] Redis cache store failed (request will proceed): {_e!r}")
 
         # Forward the buffered response, stripping content-length to avoid mismatch
         filtered_headers = [

@@ -164,8 +164,8 @@ class ReviewsService:
                 try:
                     parsed = json.loads(images)
                     image_url = parsed[0] if parsed else None
-                except Exception:
-                    pass
+                except Exception as _e:
+                    logger.warning(f"[reviews_service] failed to parse product images JSON: {_e!r}")
         return title, image_url
 
     def _update_shop_stats(self, shop: Shop) -> ShopReviewStats:

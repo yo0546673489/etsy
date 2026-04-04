@@ -103,8 +103,8 @@ def sync_orders(
                         action_url="/orders",
                         action_label="View orders",
                     )
-                except Exception:
-                    pass
+                except Exception as _e:
+                    logger.warning(f"[order_tasks] notify_tenant_admins failed (order sync): {_e!r}")
 
         logger.info(
             f"Order sync complete: {results['shops_processed']} shops, "

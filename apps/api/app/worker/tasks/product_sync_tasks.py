@@ -173,8 +173,8 @@ def sync_products_from_etsy(shop_id: int, tenant_id: int) -> Dict[str, Any]:
                 action_url="/products",
                 action_label="View products",
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            logger.warning(f"[product_sync] notify_tenant_admins failed (Etsy API error): {_e!r}")
         return {"success": False, "error": str(e)}
     except Exception as e:
         logger.exception(f"Unexpected error syncing products for shop {shop_id}: {e}")
@@ -188,8 +188,8 @@ def sync_products_from_etsy(shop_id: int, tenant_id: int) -> Dict[str, Any]:
                 action_url="/products",
                 action_label="View products",
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            logger.warning(f"[product_sync] notify_tenant_admins failed (unexpected error): {_e!r}")
         return {"success": False, "error": str(e)}
     finally:
         db.close()
@@ -234,7 +234,8 @@ def _extract_listing_product_data(
                 for img in images_response.get("results", [])
                 if img
             ]
-        except Exception:
+        except Exception as _e:
+            logger.warning(f"[product_sync] failed to fetch listing images for listing_id={listing_id}: {_e!r}")
             images = []
 
     images = [img for img in images if img]

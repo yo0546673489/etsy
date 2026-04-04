@@ -1,6 +1,7 @@
 """
 Discounts API Endpoints
 """
+import logging
 from datetime import datetime
 from typing import Optional, List
 
@@ -14,6 +15,7 @@ from app.services.discounts_service import DiscountsService
 
 router = APIRouter(prefix="/discounts", tags=["discounts"])
 service = DiscountsService()
+logger = logging.getLogger(__name__)
 
 
 class RotationItem(BaseModel):
@@ -51,7 +53,8 @@ def _parse_rule_data(data: RuleCreate) -> dict:
         if val:
             try:
                 d[field] = datetime.fromisoformat(val.replace("Z", "+00:00"))
-            except Exception:
+            except Exception as _e:
+                logger.warning(f"[discounts] failed to parse date field '{field}': {_e!r}")
                 d[field] = None
         else:
             d[field] = None

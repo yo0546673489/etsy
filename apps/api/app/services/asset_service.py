@@ -61,7 +61,8 @@ class AssetService:
                 return False
             if not parsed.netloc:
                 return False
-        except Exception:
+        except Exception as _e:
+            logger.warning(f"[asset_service] URL validation failed: {_e!r}")
             return False
         
         # Additional validation could check if URL is accessible

@@ -625,8 +625,8 @@ async def delete_shop_permanently(
     try:
         token_manager = TokenManager(db, redis_client)
         await token_manager.revoke_token(context.tenant_id, shop_id, provider='etsy')
-    except Exception:
-        pass  # Token may already be revoked
+    except Exception as _e:
+        logger.warning(f"[shops] token revoke failed for shop_id={shop_id} (may already be revoked): {_e!r}")
 
     # Delete the shop record — CASCADE constraints handle related rows
     shop_name = shop.display_name or shop.etsy_shop_id
@@ -695,7 +695,7 @@ async def patch_messaging_config(
     # Notify IMAP manager to reload listeners
     try:
         redis_client.publish("imap:reload", "reload")
-    except Exception:
-        pass
+    except Exception as _e:
+        logger.warning(f"[shops] failed to publish imap:reload signal: {_e!r}")
 
     return _messaging_config_response(shop)

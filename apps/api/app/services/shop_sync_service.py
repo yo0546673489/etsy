@@ -1,6 +1,9 @@
+import logging
 from sqlalchemy.orm import Session
 from app.models.tenancy import Shop
 from app.services.etsy_client import EtsyClient
+
+logger = logging.getLogger(__name__)
 
 
 async def sync_shop_defaults(db: Session, shop: Shop) -> None:
@@ -17,9 +20,9 @@ async def sync_shop_defaults(db: Session, shop: Shop) -> None:
     active = next((p for p in profiles if p.get("is_deleted") is False), None)
     if active and active.get("shipping_profile_id"):
       shop.default_shipping_profile_id = active["shipping_profile_id"]
-  except Exception:
+  except Exception as _e:
     # Don't fail the whole flow if Etsy call fails; leave defaults unchanged
-    pass
+    logger.warning(f"[shop_sync] failed to fetch shipping profiles: {_e!r}")
 
   # TODO: When return policies endpoint is available, fetch and set default_return_policy_id here.
 

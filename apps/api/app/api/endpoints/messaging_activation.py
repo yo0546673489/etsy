@@ -143,6 +143,6 @@ async def post_activate(
     db.commit()
     try:
         _redis.publish("imap:reload", "reload")
-    except Exception:
-        pass
+    except Exception as _e:
+        logger.warning(f"[messaging_activation] failed to publish imap:reload signal: {_e!r}")
     return {"success": True}

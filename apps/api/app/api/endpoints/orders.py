@@ -607,7 +607,8 @@ async def fulfill_order(
     if isinstance(existing_shipments, str):
         try:
             existing_shipments = json.loads(existing_shipments)
-        except Exception:
+        except Exception as _e:
+            logger.warning(f"[orders] failed to parse shipments JSON for order {order.id}: {_e!r}")
             existing_shipments = []
     if not isinstance(existing_shipments, list):
         existing_shipments = []
@@ -798,7 +799,8 @@ async def record_manual_tracking(
     if isinstance(existing_shipments, str):
         try:
             existing_shipments = json.loads(existing_shipments)
-        except Exception:
+        except Exception as _e:
+            logger.warning(f"[orders] failed to parse shipments JSON for order {order.id}: {_e!r}")
             existing_shipments = []
     if not isinstance(existing_shipments, list):
         existing_shipments = []

@@ -397,8 +397,8 @@ def _mark_api_unavailable(db, shop: Shop) -> None:
         if state:
             state.etsy_api_available = False
             db.commit()
-    except Exception:
-        pass
+    except Exception as _e:
+        logger.warning(f"[financial_tasks] _mark_api_unavailable failed for shop_id={shop.id}: {_e!r}")
 
 
 @celery_app.task(name="app.worker.tasks.financial_tasks.sync_payment_account_all")
@@ -503,8 +503,8 @@ def sync_ledger_entries(
                         action_url="/financials",
                         action_label="View financials",
                     )
-                except Exception:
-                    pass
+                except Exception as _e:
+                    logger.warning(f"[financial_tasks] notify_tenant_admins failed (ledger sync): {_e!r}")
 
         # Invalidate financial cache so UI shows fresh data after sync
         if redis_client and results["shops_processed"] > 0:
@@ -512,8 +512,8 @@ def sync_ledger_entries(
                 keys = redis_client.keys("financials:*")
                 if keys:
                     redis_client.delete(*keys)
-            except Exception:
-                pass
+            except Exception as _e:
+                logger.warning(f"[financial_tasks] Redis cache invalidation failed: {_e!r}")
 
         logger.info(f"sync_ledger_entries complete: {results}")
         return results
@@ -690,8 +690,8 @@ def sync_payment_details(
                         action_url="/financials",
                         action_label="View financials",
                     )
-                except Exception:
-                    pass
+                except Exception as _e:
+                    logger.warning(f"[financial_tasks] notify_tenant_admins failed (payment sync): {_e!r}")
 
         logger.info(f"sync_payment_details complete: {results}")
         return results

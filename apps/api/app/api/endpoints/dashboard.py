@@ -87,7 +87,8 @@ async def get_dashboard_stats(
             .with_entities(func.coalesce(func.sum(Product.views), 0))
             .scalar() or 0
         )
-    except Exception:
+    except Exception as _e:
+        logger.warning(f"[views] failed to sum product views: {_e!r}")
         total_views = 0
 
     # ── Today's shop visits from Etsy stats API ─────────────────────────
@@ -113,8 +114,8 @@ async def get_dashboard_stats(
                     visits = stats_data.get("visit_count") or stats_data.get("visits") or 0
                     today_visits = sum(v.get("value", 0) for v in visits) \
                         if isinstance(visits, list) else int(visits)
-            except Exception:
-                pass
+            except Exception as _e:
+                logger.warning(f"[today_visits] failed to fetch shop stats: {_e!r}")
 
     # ── Orders (date-filterable) ────────────────────────────────────────
     orders_query = filter_by_tenant(
@@ -316,7 +317,8 @@ async def get_dashboard_stats(
                 f"[balance] ledger fallback: deposit={available_for_deposit} "
                 f"balance={available_for_payout} shops={parsed_shop_ids}"
             )
-        except Exception:
+        except Exception as _e:
+            logger.error(f"[balance] ledger fallback failed — balance will show 0: {_e!r}")
             available_for_payout = 0
             payout_currency = "ILS"
 
@@ -333,8 +335,8 @@ async def get_dashboard_stats(
             end_date=now_utc,
         )
         monthly_net_profit = pnl.get("net_profit", 0) / 100
-    except Exception:
-        pass
+    except Exception as _e:
+        logger.warning(f"[monthly_net_profit] failed to compute P&L: {_e!r}")
 
     # ── Currency conversion for display ────────────────────────────────
     display_amount = None
@@ -360,8 +362,8 @@ async def get_dashboard_stats(
                     mnp_cents = int(round(monthly_net_profit * 100))
                     conv_mnp, _, _, _ = convert_amount(mnp_cents, payout_currency, target_ccy, db=db)
                     display_monthly_net_profit = conv_mnp / 100
-            except Exception:
-                pass
+            except Exception as _e:
+                logger.warning(f"[currency_conversion] display currency conversion failed: {_e!r}")
 
     return {
         "total_products": total_products,
@@ -472,7 +474,8 @@ async def get_recent_orders(
                 amount_str = f"{conv_ccy} {conv_price:.2f}"
                 item_conv_rate = float(rate)
                 item_conv_stale = stale
-            except Exception:
+            except Exception as _e:
+                logger.warning(f"[currency_conversion] order price conversion failed: {_e!r}")
                 amount_str = "--" if total_price is None else f"{order_currency} {total_price:.2f}"
                 item_conv_rate = None
                 item_conv_stale = False

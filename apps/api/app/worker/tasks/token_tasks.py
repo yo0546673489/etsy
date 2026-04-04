@@ -113,8 +113,8 @@ def refresh_expiring_tokens(self):
                         action_url="/settings?tab=shops",
                         action_label="Check shop",
                     )
-                except Exception:
-                    pass
+                except Exception as _e:
+                    logger.warning(f"[token_tasks] notify_tenant_admins failed (token refresh): {_e!r}")
                 continue
 
         result = {

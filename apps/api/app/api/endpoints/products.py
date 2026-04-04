@@ -175,16 +175,16 @@ async def import_csv(
         if row.get('price'):
             try:
                 price = int(float(row['price']) * 100)
-            except Exception:
-                pass
-        
+            except Exception as _e:
+                logger.warning(f"[products] failed to parse price '{row['price']}': {_e!r}")
+
         # Parse quantity
         quantity = None
         if row.get('quantity'):
             try:
                 quantity = int(row['quantity'])
-            except Exception:
-                pass
+            except Exception as _e:
+                logger.warning(f"[products] failed to parse quantity '{row['quantity']}': {_e!r}")
         
         product = Product(
             tenant_id=context.tenant_id,

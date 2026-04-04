@@ -149,8 +149,8 @@ def get_rate(
                         ttl,
                         json.dumps({"rate": str(rate), "retrieved_at": retrieved.isoformat()}),
                     )
-                except Exception:
-                    pass
+                except Exception as _e:
+                    logger.warning(f"[exchange_rate] Redis cache store (DB hit) failed: {_e!r}")
                 return rate, retrieved, False
         except Exception as e:
             logger.debug("DB rate lookup failed: %s", e)
@@ -201,8 +201,8 @@ def get_rate(
                 ttl,
                 json.dumps({"rate": str(rate), "retrieved_at": retrieved.isoformat()}),
             )
-        except Exception:
-            pass
+        except Exception as _e:
+            logger.warning(f"[exchange_rate] Redis cache store (API hit) failed: {_e!r}")
 
         return rate, retrieved, False
     except Exception as e:
@@ -224,8 +224,8 @@ def get_rate(
                         base, target, row.rate, row.retrieved_at,
                     )
                     return Decimal(str(row.rate)), row.retrieved_at, True
-            except Exception:
-                pass
+            except Exception as _e:
+                logger.warning(f"[exchange_rate] last-resort DB fallback failed: {_e!r}")
         raise ValueError(f"Could not get exchange rate for {base}->{target}")
 
 

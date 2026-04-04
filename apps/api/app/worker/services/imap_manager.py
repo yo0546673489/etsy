@@ -84,13 +84,13 @@ def decrypt_imap_password(enc_value: Any) -> str:
                     aesgcm = AESGCM(key)
                     decrypted = aesgcm.decrypt(nonce, ciphertext, None)
                     return decrypted.decode("utf-8")
-            except Exception:
-                logger.warning("IMAPManager: AES-GCM decrypt failed, falling back to utf-8", exc_info=True)
+            except Exception as _e:
+                logger.warning("IMAPManager: AES-GCM decrypt failed, falling back to utf-8: %r", _e)
 
         try:
             return enc_value.decode("utf-8")
-        except Exception:
-            logger.warning("IMAPManager: could not decode imap_password_enc as utf-8, using repr")
+        except Exception as _e:
+            logger.warning("IMAPManager: could not decode imap_password_enc as utf-8, using repr: %r", _e)
             return repr(enc_value)
 
     return str(enc_value)
@@ -162,8 +162,8 @@ async def _wait_for_reload_signal(redis_url: str) -> None:
                         res = close_fn()
                         if asyncio.iscoroutine(res):
                             await res
-            except Exception:
-                logger.debug("IMAPManager: error closing pubsub", exc_info=True)
+            except Exception as _e:
+                logger.debug("IMAPManager: error closing pubsub: %r", _e)
             try:
                 if redis is not None:
                     close_fn = getattr(redis, "aclose", None) or getattr(redis, "close", None)
@@ -171,8 +171,8 @@ async def _wait_for_reload_signal(redis_url: str) -> None:
                         res = close_fn()
                         if asyncio.iscoroutine(res):
                             await res
-            except Exception:
-                logger.debug("IMAPManager: error closing redis client", exc_info=True)
+            except Exception as _e:
+                logger.debug("IMAPManager: error closing redis client: %r", _e)
 
 
 async def run_manager() -> None:
@@ -201,8 +201,8 @@ async def run_manager() -> None:
         # Wait for reload signal while listeners run
         try:
             await _wait_for_reload_signal(redis_url)
-        except Exception:
-            logger.exception("IMAPManager: error while waiting for reload signal")
+        except Exception as _e:
+            logger.error("IMAPManager: error while waiting for reload signal: %r", _e)
             await asyncio.sleep(5)
             continue
 

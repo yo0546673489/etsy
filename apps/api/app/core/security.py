@@ -9,6 +9,8 @@ from jose import jwt
 from datetime import datetime, timedelta, timezone
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
+
 
 # ==================== JWT Authentication ====================
 
@@ -349,8 +351,9 @@ def validate_redirect_uri(redirect_uri: str, allowed_domains: list) -> bool:
                 return True
         
         return False
-        
-    except Exception:
+
+    except Exception as _e:
+        logger.warning(f"[security] URL validation failed: {_e!r}")
         return False
 
 
@@ -445,6 +448,7 @@ def check_rate_limit(redis_client, key: str, max_attempts: int, window_seconds: 
 
         return count <= max_attempts
 
-    except Exception:
+    except Exception as _e:
+        logger.warning(f"[security] rate_limit_check failed (failing open — Redis down?): {_e!r}")
         # Fail open (allow the request if Redis is down)
         return True

@@ -196,8 +196,8 @@ def _parse_csv(content: bytes, invoice: ExpenseInvoice, db: Session):
         if total > 0 and not invoice.total_amount:
             invoice.total_amount = total
         invoice.parsed_at = datetime.now(timezone.utc)
-    except Exception:
-        logger.exception("CSV parse failed for invoice %s", invoice.id)
+    except Exception as _e:
+        logger.error(f"[financial_invoices] CSV parse failed for invoice {invoice.id}: {_e!r}")
 
 
 def _parse_xlsx(content: bytes, invoice: ExpenseInvoice, db: Session):
@@ -253,8 +253,8 @@ def _parse_xlsx(content: bytes, invoice: ExpenseInvoice, db: Session):
         invoice.parsed_at = datetime.now(timezone.utc)
     except ImportError:
         logger.warning("openpyxl not installed — XLSX parsing skipped")
-    except Exception:
-        logger.exception("XLSX parse failed for invoice %s", invoice.id)
+    except Exception as _e:
+        logger.error(f"[financial_invoices] XLSX parse failed for invoice {invoice.id}: {_e!r}")
 
 
 # ── List ──
@@ -381,8 +381,8 @@ async def delete_invoice(
     if inv.file_path and os.path.exists(inv.file_path):
         try:
             os.remove(inv.file_path)
-        except Exception:
-            pass
+        except Exception as _e:
+            logger.warning(f"[financial_invoices] failed to delete file {inv.file_path}: {_e!r}")
 
     db.delete(inv)
     db.commit()

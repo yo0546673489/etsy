@@ -2,11 +2,14 @@
 Currency Conversion Helper
 Enriches API responses with converted values when user prefers a different currency.
 """
+import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
 from sqlalchemy.orm import Session
 
 from app.services.exchange_rate_service import convert_amount, SUPPORTED_CURRENCIES
+
+logger = logging.getLogger(__name__)
 
 
 def enrich_amount(
@@ -80,8 +83,8 @@ def enrich_financial_response(
         if "converted_" in str(result):
             result["converted_currency"] = target_currency
             result["original_currency"] = orig
-    except Exception:
-        pass
+    except Exception as _e:
+        logger.warning(f"[currency_conversion] enrich_pnl_data failed: {_e!r}")
     return result
 
 
@@ -115,6 +118,6 @@ def enrich_analytics_overview(
                 result[f"converted_{key}"] = round(conv_cents / 100, 2)
         result["converted_currency"] = target_currency
         result["original_currency"] = orig
-    except Exception:
-        pass
+    except Exception as _e:
+        logger.warning(f"[currency_conversion] enrich_analytics_overview failed: {_e!r}")
     return result

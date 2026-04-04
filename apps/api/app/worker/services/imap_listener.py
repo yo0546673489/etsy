@@ -111,8 +111,8 @@ class IMAPIdleListener:
                 try:
                     if self._client is not None:
                         await self._client.logout()
-                except Exception:
-                    logger.debug("IMAPIdleListener: error during logout for shop_id=%s", self.shop_id)
+                except Exception as _e:
+                    logger.debug("IMAPIdleListener: error during logout for shop_id=%s: %r", self.shop_id, _e)
                 self._client = None
 
             logger.info(
@@ -173,11 +173,12 @@ class IMAPIdleListener:
         for uid in uid_list:
             try:
                 await self._process_single_email(uid)
-            except Exception:
-                logger.exception(
-                    "IMAPIdleListener: error processing message uid=%s shop_id=%s",
+            except Exception as _e:
+                logger.error(
+                    "IMAPIdleListener: error processing message uid=%s shop_id=%s: %r",
                     uid,
                     self.shop_id,
+                    _e,
                 )
 
     async def _process_single_email(self, uid: str) -> None:
@@ -287,7 +288,8 @@ class IMAPIdleListener:
                 if ctype == "text/html":
                     try:
                         bodies.append(part.get_payload(decode=True).decode(part.get_content_charset() or "utf-8", errors="replace"))
-                    except Exception:
+                    except Exception as _e:
+                        logger.warning(f"[imap_listener] failed to decode HTML part: {_e!r}")
                         continue
         else:
             if msg.get_content_type() == "text/html":
@@ -295,8 +297,8 @@ class IMAPIdleListener:
                     bodies.append(
                         msg.get_payload(decode=True).decode(msg.get_content_charset() or "utf-8", errors="replace")
                     )
-                except Exception:
-                    pass
+                except Exception as _e:
+                    logger.warning(f"[imap_listener] failed to decode HTML body: {_e!r}")
         return bodies
 
     @classmethod
@@ -312,8 +314,8 @@ class IMAPIdleListener:
                     href = a["href"]
                     if "conversations" in href:
                         return href
-            except Exception:
-                logger.debug("IMAPIdleListener: error parsing HTML body for conversation URL", exc_info=True)
+            except Exception as _e:
+                logger.debug("IMAPIdleListener: error parsing HTML body for conversation URL: %r", _e)
         return None
 
     @staticmethod
