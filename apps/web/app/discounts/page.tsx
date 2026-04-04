@@ -725,6 +725,9 @@ export default function DiscountsPage() {
   const visibleShops = [...(selectedShops.length > 0 ? selectedShops : shops)]
     .sort((a, b) => shopSortKey(a.display_name) - shopSortKey(b.display_name));
 
+  // חנויות מחוברות בלבד — לשימוש בפעולות באלק
+  const actionableShops = visibleShops.filter(s => s.status === 'connected');
+
   const loadData = useCallback(async () => {
     if (!shops.length) { setLoading(false); return; }
     setLoading(true);
@@ -821,7 +824,7 @@ export default function DiscountsPage() {
   };
 
   const handleBulkCreate = async (data: Partial<DiscountRule>) => {
-    const targets = visibleShops;
+    const targets = actionableShops;
     if (!targets.length) return;
     // פיזור: כשיש יותר מחנות אחת — כל חנות מקבלת דחייה של 30 דקות
     // חנות 0 = עכשיו, חנות 1 = +30 דקות, חנות 2 = +60 דקות וכו'
@@ -893,7 +896,7 @@ export default function DiscountsPage() {
             </button>
             <button
               onClick={() => setShowBulkModal(true)}
-              disabled={visibleShops.length === 0}
+              disabled={actionableShops.length === 0}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-[rgba(0,109,67,0.3)] text-[#006d43] rounded-lg font-medium hover:bg-[rgba(0,109,67,0.06)] transition-colors disabled:opacity-50 text-sm"
               title="החל פעולה על כל החנויות"
             >
@@ -1058,7 +1061,7 @@ export default function DiscountsPage() {
 
       {showBulkModal && (
         <BulkActionModal
-          shopCount={visibleShops.length}
+          shopCount={actionableShops.length}
           onClose={() => setShowBulkModal(false)}
           onApplyAll={handleBulkCreate}
           onDeactivateAll={handleBulkDeactivate}
