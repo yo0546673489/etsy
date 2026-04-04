@@ -3,11 +3,15 @@ Dashboard API Endpoints
 Provides aggregated statistics for the dashboard
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, Query
 from typing import Optional, List
 from datetime import date, datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import func, distinct, or_, and_
+
+logger = logging.getLogger(__name__)
 
 from app.api.dependencies import get_user_context, UserContext, require_permission
 from app.core.database import get_db
