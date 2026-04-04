@@ -593,7 +593,7 @@ function StatCard({
       <div className="flex items-center justify-between mb-5">
         <span className={cn('text-sm font-semibold', positive === false ? 'text-red-400' : positive === true ? 'text-[#006d43]' : 'text-gray-400')}>{subtitle || ''}</span>
         <div className={cn('w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0', positive === false ? 'bg-red-50' : 'bg-green-50')}>
-          <Icon className={cn('w-[22px] h-[22px]', positive === false ? 'text-red-500' : 'text-[#006d43]')} strokeWidth={1.8} />
+          <Icon className={cn('w-[22px] h-[22px]', positive === false ? 'text-red-500' : 'text-[#006d43]')} />
         </div>
       </div>
       <p className="text-sm text-gray-400 text-center mb-1.5">{title}</p>
