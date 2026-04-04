@@ -22,19 +22,19 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    completed:  { label: 'הושלם',  cls: 'bg-green-100 text-green-700' },
-    in_transit: { label: 'בדרך',   cls: 'bg-blue-100 text-blue-700' },
-    processing: { label: 'בתהליך', cls: 'bg-yellow-100 text-yellow-700' },
-    cancelled:  { label: 'בוטל',   cls: 'bg-red-100 text-red-700' },
-    refunded:   { label: 'הוחזר',  cls: 'bg-gray-100 text-gray-600' },
+function StatusBadge({ status, t }: { status: string; t: (key: string) => string }) {
+  const map: Record<string, { tKey: string; cls: string }> = {
+    completed:  { tKey: 'order.status.completed',  cls: 'bg-green-100 text-green-700' },
+    in_transit: { tKey: 'order.status.in_transit',  cls: 'bg-blue-100 text-blue-700' },
+    processing: { tKey: 'order.status.processing', cls: 'bg-yellow-100 text-yellow-700' },
+    cancelled:  { tKey: 'order.status.cancelled',  cls: 'bg-red-100 text-red-700' },
+    refunded:   { tKey: 'order.status.refunded',   cls: 'bg-gray-100 text-gray-600' },
   };
-  const s = map[normalizeOrderStatus(status)] ?? { label: status, cls: 'bg-gray-100 text-gray-600' };
-  return <span className={cn('px-3 py-1 rounded-full text-sm font-semibold', s.cls)}>{s.label}</span>;
+  const s = map[normalizeOrderStatus(status)] ?? { tKey: '', cls: 'bg-gray-100 text-gray-600' };
+  return <span className={cn('px-3 py-1 rounded-full text-sm font-semibold', s.cls)}>{s.tKey ? t(s.tKey) : status}</span>;
 }
 
-function PaymentBadge({ status }: { status: string }) {
+function PaymentBadge({ status, t }: { status: string; t: (key: string) => string }) {
   const isPaid = normalizePaymentStatus(status) === 'paid';
   return (
     <span className={cn(
@@ -42,7 +42,7 @@ function PaymentBadge({ status }: { status: string }) {
       isPaid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
     )}>
       <span className={cn('w-1.5 h-1.5 rounded-full', isPaid ? 'bg-green-500' : 'bg-yellow-500')} />
-      {isPaid ? 'שולם' : 'לא שולם'}
+      {isPaid ? t('order.payment.paid') : t('order.payment.unpaid')}
     </span>
   );
 }
@@ -62,7 +62,7 @@ export default function OrderDetailPage() {
   const params = useParams();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { isRTL } = useLanguage();
+  const { isRTL, t } = useLanguage();
   const orderId = Number(params.id);
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -93,33 +93,33 @@ export default function OrderDetailPage() {
         setOrder(data);
         setTrackingCode(data.tracking_code || '');
       })
-      .catch(() => showToast('שגיאה בטעינת ההזמנה', 'error'))
+      .catch(() => showToast(t('orders.loadFailed'), 'error'))
       .finally(() => setLoading(false));
   }, [orderId]);
 
   async function handleFulfill() {
-    if (!trackingCode.trim()) { showToast('הכנס מספר מעקב', 'error'); return; }
+    if (!trackingCode.trim()) { showToast(t('order.trackingNumber'), 'error'); return; }
     setFulfilling(true);
     try {
       await ordersApi.fulfill(orderId, { tracking_code: trackingCode, carrier_name: carrierName || undefined });
-      showToast('ההזמנה סומנה כנשלחה', 'success');
+      showToast(t('orders.syncSuccess'), 'success');
       const updated = await ordersApi.getById(orderId);
       setOrder(updated);
     } catch {
-      showToast('שגיאה בעדכון ההזמנה', 'error');
+      showToast(t('orders.syncFailed'), 'error');
     } finally {
       setFulfilling(false);
     }
   }
 
   async function handleSaveTracking() {
-    if (!trackingCode.trim()) { showToast('הכנס מספר מעקב', 'error'); return; }
+    if (!trackingCode.trim()) { showToast(t('order.trackingNumber'), 'error'); return; }
     setFulfilling(true);
     try {
       await ordersApi.recordTracking(orderId, { tracking_code: trackingCode, carrier_name: carrierName || undefined });
-      showToast('מספר מעקב עודכן', 'success');
+      showToast(t('order.saveTracking'), 'success');
     } catch {
-      showToast('שגיאה בעדכון', 'error');
+      showToast(t('orders.syncFailed'), 'error');
     } finally {
       setFulfilling(false);
     }
@@ -138,7 +138,7 @@ export default function OrderDetailPage() {
   if (!order) {
     return (
       <DashboardLayout>
-        <div className="text-center py-20 text-gray-400">ההזמנה לא נמצאה</div>
+        <div className="text-center py-20 text-gray-400">{t('order.notFound')}</div>
       </DashboardLayout>
     );
   }
@@ -160,13 +160,13 @@ export default function OrderDetailPage() {
             className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors text-sm"
           >
             <ArrowRight className="w-4 h-4" />
-            חזרה להזמנות
+            {t('order.backToOrders')}
           </button>
           <div className="h-4 w-px bg-gray-200" />
           <h1 className="text-xl font-bold text-gray-800">
-            הזמנה #{order.order_id || order.etsy_receipt_id || order.id}
+            {t('order.title')} #{order.order_id || order.etsy_receipt_id || order.id}
           </h1>
-          <StatusBadge status={order.lifecycle_status || order.status} />
+          <StatusBadge status={order.lifecycle_status || order.status} t={t} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -178,7 +178,7 @@ export default function OrderDetailPage() {
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <Package className="w-4 h-4 text-[#006d43]" />
-                פריטים
+                {t('order.items')}
               </h2>
               {order.items && order.items.length > 0 ? (
                 <div className="space-y-3">
@@ -214,7 +214,7 @@ export default function OrderDetailPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-400 text-sm">אין פריטים</p>
+                <p className="text-gray-400 text-sm">{t('order.noItems')}</p>
               )}
             </div>
 
@@ -223,7 +223,7 @@ export default function OrderDetailPage() {
               <div className="bg-white rounded-2xl p-6 shadow-sm">
                 <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-[#006d43]" />
-                  כתובת משלוח
+                  {t('order.shippingAddress')}
                 </h2>
                 <p className="text-sm text-gray-700 leading-relaxed">{addressStr}</p>
               </div>
@@ -233,21 +233,21 @@ export default function OrderDetailPage() {
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <Truck className="w-4 h-4 text-[#006d43]" />
-                משלוח ומעקב
+                {t('order.shippingTracking')}
               </h2>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">מספר מעקב</label>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('order.trackingNumber')}</label>
                   <input
                     type="text"
                     value={trackingCode}
                     onChange={e => setTrackingCode(e.target.value)}
-                    placeholder="לדוג׳: 1Z999AA10123456784"
+                    placeholder={t('order.trackingPlaceholder')}
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#006d43] transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">חברת שליחויות</label>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{t('order.carrier')}</label>
                   {carrierMode === 'select' ? (
                     <select
                       value={ETSY_CARRIERS.includes(carrierName) ? carrierName : ''}
@@ -261,11 +261,11 @@ export default function OrderDetailPage() {
                       }}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#006d43] transition-colors"
                     >
-                      <option value="">— בחר חברת שליחויות —</option>
+                      <option value="">{t('order.selectCarrier')}</option>
                       {ETSY_CARRIERS.map(c => (
                         <option key={c} value={c}>{c}</option>
                       ))}
-                      <option value="__custom__">✏️ הכנס חברה אחרת...</option>
+                      <option value="__custom__">{t('order.customCarrier')}</option>
                     </select>
                   ) : (
                     <div className="flex gap-2">
@@ -273,7 +273,7 @@ export default function OrderDetailPage() {
                         type="text"
                         value={carrierName}
                         onChange={e => setCarrierName(e.target.value)}
-                        placeholder="שם חברת השליחויות"
+                        placeholder={t('order.carrierPlaceholder')}
                         autoFocus
                         className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#006d43] transition-colors"
                       />
@@ -282,7 +282,7 @@ export default function OrderDetailPage() {
                         onClick={() => { setCarrierMode('select'); setCarrierName(''); }}
                         className="px-3 py-2.5 bg-gray-100 text-gray-500 rounded-xl text-xs hover:bg-gray-200 transition-colors"
                       >
-                        ← רשימה
+                        {t('order.backToList')}
                       </button>
                     </div>
                   )}
@@ -295,7 +295,7 @@ export default function OrderDetailPage() {
                       className="flex items-center gap-2 px-4 py-2.5 bg-[#006d43] text-white rounded-xl text-sm font-semibold hover:bg-[#005a38] disabled:opacity-50 transition-colors"
                     >
                       {fulfilling ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                      סמן כנשלח
+                      {t('order.markShipped')}
                     </button>
                   )}
                   <button
@@ -304,7 +304,7 @@ export default function OrderDetailPage() {
                     className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 disabled:opacity-50 transition-colors"
                   >
                     <Save className="w-4 h-4" />
-                    שמור מעקב
+                    {t('order.saveTracking')}
                   </button>
                 </div>
               </div>
@@ -319,13 +319,13 @@ export default function OrderDetailPage() {
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <Hash className="w-4 h-4 text-[#006d43]" />
-                פרטי הזמנה
+                {t('order.details')}
               </h2>
-              <InfoRow label="מספר הזמנה" value={order.order_id || order.etsy_receipt_id || String(order.id)} />
-              <InfoRow label="תאריך" value={new Date(order.created_at).toLocaleDateString('he-IL')} />
-              {order.tracking_code && <InfoRow label="מעקב" value={order.tracking_code} />}
+              <InfoRow label={t('order.orderNumber')} value={order.order_id || order.etsy_receipt_id || String(order.id)} />
+              <InfoRow label={t('order.date')} value={new Date(order.created_at).toLocaleDateString('he-IL')} />
+              {order.tracking_code && <InfoRow label={t('order.tracking')} value={order.tracking_code} />}
               <div className="mt-3">
-                <PaymentBadge status={order.payment_status} />
+                <PaymentBadge status={order.payment_status} t={t} />
               </div>
             </div>
 
@@ -333,10 +333,10 @@ export default function OrderDetailPage() {
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <User className="w-4 h-4 text-[#006d43]" />
-                קונה
+                {t('order.buyer')}
               </h2>
-              <InfoRow label="שם" value={order.buyer_name} />
-              {!isSupplier && <InfoRow label="אימייל" value={order.buyer_email} />}
+              <InfoRow label={t('common.name')} value={order.buyer_name} />
+              {!isSupplier && <InfoRow label={t('common.email')} value={order.buyer_email} />}
             </div>
 
             {/* Total */}
@@ -344,7 +344,7 @@ export default function OrderDetailPage() {
               <div className="bg-white rounded-2xl p-6 shadow-sm">
                 <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-[#006d43]" />
-                  סכום
+                  {t('order.total')}
                 </h2>
                 <p className="text-2xl font-black text-[#006d43]">
                   {order.total_price.toFixed(2)} {order.currency}

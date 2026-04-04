@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
+import { useLanguage } from '@/lib/language-context';
 
 export type DateRangeKey =
   | 'today'
@@ -19,15 +20,15 @@ export interface DateRange {
   endDate: string;   // YYYY-MM-DD
 }
 
-const PRESETS: { key: DateRangeKey; label: string }[] = [
-  { key: 'today',      label: 'היום' },
-  { key: 'yesterday',  label: 'אתמול' },
-  { key: 'last7',      label: '7 ימים אחרונים' },
-  { key: 'last30',     label: '30 ימים אחרונים' },
-  { key: 'this_month', label: 'החודש הנוכחי' },
-  { key: 'this_year',  label: 'השנה הנוכחית' },
-  { key: 'last_year',  label: 'שנה שעברה' },
-  { key: 'all_time',   label: 'כל הזמנים' },
+const PRESET_KEYS: { key: DateRangeKey; tKey: string }[] = [
+  { key: 'today',      tKey: 'dateRange.today' },
+  { key: 'yesterday',  tKey: 'dateRange.yesterday' },
+  { key: 'last7',      tKey: 'dateRange.last7' },
+  { key: 'last30',     tKey: 'dateRange.last30' },
+  { key: 'this_month', tKey: 'dateRange.thisMonth' },
+  { key: 'this_year',  tKey: 'dateRange.thisYear' },
+  { key: 'last_year',  tKey: 'dateRange.lastYear' },
+  { key: 'all_time',   tKey: 'dateRange.allTime' },
 ];
 
 function toISO(d: Date): string {
@@ -79,9 +80,7 @@ export function computeRange(key: DateRangeKey): DateRange {
   return { key, startDate: toISO(start), endDate: toISO(end) };
 }
 
-function getLabelForKey(key: DateRangeKey): string {
-  return PRESETS.find(p => p.key === key)?.label ?? key;
-}
+// getLabelForKey is now replaced by inline t() call in the component
 
 interface DateRangePickerProps {
   value: DateRange;
@@ -91,6 +90,7 @@ interface DateRangePickerProps {
 export default function DateRangePicker({ value, onChange }: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
 
   // Close on outside click
   useEffect(() => {
@@ -116,8 +116,8 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
         className="bg-white rounded-2xl px-5 py-4 shadow-sm border border-gray-100 flex items-center gap-3 hover:border-gray-300 transition-colors min-w-[160px]"
       >
         <div className="text-right flex-1">
-          <p className="text-xs text-gray-400 mb-0.5">טווח זמן</p>
-          <p className="text-sm font-bold text-gray-700">{getLabelForKey(value.key)}</p>
+          <p className="text-xs text-gray-400 mb-0.5">{t('dateRange.label')}</p>
+          <p className="text-sm font-bold text-gray-700">{t(PRESET_KEYS.find(p => p.key === value.key)?.tKey ?? 'dateRange.last30')}</p>
         </div>
         <ChevronDown
           className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
@@ -127,14 +127,14 @@ export default function DateRangePicker({ value, onChange }: DateRangePickerProp
       {/* Dropdown */}
       {open && (
         <div className="absolute left-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden z-50">
-          {PRESETS.map(preset => (
+          {PRESET_KEYS.map(preset => (
             <button
               key={preset.key}
               onClick={() => select(preset.key)}
               className="w-full flex items-center justify-between px-4 py-3 text-sm text-right hover:bg-gray-50 transition-colors"
             >
               <span className={value.key === preset.key ? 'font-bold text-[#006d43]' : 'text-gray-700'}>
-                {preset.label}
+                {t(preset.tKey)}
               </span>
               {value.key === preset.key && (
                 <Check className="w-4 h-4 text-[#006d43] flex-shrink-0" />

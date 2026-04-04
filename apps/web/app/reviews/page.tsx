@@ -51,13 +51,14 @@ function StatCard({ icon: Icon, label, value, subtext, color = 'text-[#006d43]' 
   );
 }
 
-function RatingDistribution({ distribution, total }: {
+function RatingDistribution({ distribution, total, t }: {
   distribution: Record<number, number>;
   total: number;
+  t: (key: string) => string;
 }) {
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4 text-right">התפלגות דירוגים</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4 text-right">{t('reviews.distribution')}</h3>
       <div className="space-y-3">
         {[5, 4, 3, 2, 1].map((rating) => {
           const count = distribution[rating] || 0;
@@ -100,7 +101,7 @@ function ReviewCard({ review, onResponseSaved }: {
   onResponseSaved: (id: number, response: string | null) => void;
 }) {
   const { showToast } = useToast();
-  const { isRTL } = useLanguage();
+  const { isRTL, t } = useLanguage();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(review.seller_response || '');
   const [saving, setSaving] = useState(false);
@@ -112,9 +113,9 @@ function ReviewCard({ review, onResponseSaved }: {
       await reviewsApi.setResponse(review.id, draft.trim());
       onResponseSaved(review.id, draft.trim());
       setEditing(false);
-      showToast('התגובה נשמרה', 'success');
+      showToast(t('reviews.replySaved'), 'success');
     } catch {
-      showToast('שגיאה בשמירת התגובה', 'error');
+      showToast(t('reviews.saveFailed'), 'error');
     } finally {
       setSaving(false);
     }
@@ -127,9 +128,9 @@ function ReviewCard({ review, onResponseSaved }: {
       onResponseSaved(review.id, null);
       setDraft('');
       setEditing(false);
-      showToast('התגובה נמחקה', 'success');
+      showToast(t('reviews.replyDeleted'), 'success');
     } catch {
-      showToast('שגיאה במחיקת התגובה', 'error');
+      showToast(t('reviews.deleteFailed'), 'error');
     } finally {
       setSaving(false);
     }
@@ -191,7 +192,7 @@ function ReviewCard({ review, onResponseSaved }: {
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <p className="text-xs text-[#006d43] font-medium">תגובתך:</p>
+                <p className="text-xs text-[#006d43] font-medium">{t('reviews.yourReply')}</p>
               </div>
               <p className="text-sm text-gray-600 text-right">{review.seller_response}</p>
             </div>
@@ -200,7 +201,7 @@ function ReviewCard({ review, onResponseSaved }: {
               <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="כתוב תגובה ללקוח..."
+                placeholder={t('reviews.writeReply')}
                 rows={3}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#006d43] resize-none text-right"
                 dir={isRTL ? 'rtl' : 'ltr'}
@@ -211,14 +212,14 @@ function ReviewCard({ review, onResponseSaved }: {
                   disabled={saving}
                   className="flex items-center gap-1 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg transition-colors"
                 >
-                  <X className="w-3.5 h-3.5" /> ביטול
+                  <X className="w-3.5 h-3.5" /> {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving || !draft.trim()}
                   className="flex items-center gap-1 px-3 py-1.5 text-xs bg-[#006d43] text-white rounded-lg hover:bg-[#005535] transition-colors disabled:opacity-50"
                 >
-                  <Check className="w-3.5 h-3.5" /> {saving ? 'שומר...' : 'שמור'}
+                  <Check className="w-3.5 h-3.5" /> {saving ? t('common.saving') : t('common.save')}
                 </button>
               </div>
             </div>
@@ -228,7 +229,7 @@ function ReviewCard({ review, onResponseSaved }: {
               className="mt-1 flex items-center gap-1.5 text-xs text-[#006d43] hover:text-[#005535] transition-colors"
             >
               <MessageSquare className="w-3.5 h-3.5" />
-              הגב ללקוח
+              {t('reviews.replyToCustomer')}
             </button>
           )}
         </div>
@@ -240,7 +241,7 @@ function ReviewCard({ review, onResponseSaved }: {
 export default function ReviewsPage() {
   const { selectedShop, selectedShopIds } = useShop();
   const { showToast } = useToast();
-  const { isRTL } = useLanguage();
+  const { isRTL, t } = useLanguage();
 
   const [stats, setStats] = useState<ReviewStats | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -289,7 +290,7 @@ export default function ReviewsPage() {
       setHasMore(reviewsData.has_more);
       setCurrentOffset(newOffset + reviewsData.reviews.length);
     } catch (e: any) {
-      showToast(e.detail || 'שגיאה בטעינת ביקורות', 'error');
+      showToast(e.detail || t('reviews.loadFailed'), 'error');
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -298,16 +299,16 @@ export default function ReviewsPage() {
 
   const handleSync = async () => {
     if (!selectedShop?.id) {
-      showToast('בחר חנות לסנכרון', 'error');
+      showToast(t('reviews.selectShop'), 'error');
       return;
     }
     setSyncing(true);
     try {
       const result = await reviewsApi.syncReviews(selectedShop.id);
-      showToast(`סונכרנו ${result.new_reviews} ביקורות חדשות`, 'success');
+      showToast(t('reviews.syncSuccess').replace('{count}', String(result.new_reviews)), 'success');
       loadData();
     } catch (e: any) {
-      showToast(e.detail || 'שגיאה בסנכרון', 'error');
+      showToast(e.detail || t('reviews.syncFailed'), 'error');
     } finally {
       setSyncing(false);
     }
@@ -325,9 +326,9 @@ export default function ReviewsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">ביקורות ודירוגים</h1>
+            <h1 className="text-2xl font-bold text-gray-800">{t('reviews.title')}</h1>
             <p className="text-gray-500 text-sm mt-1">
-              {selectedShop?.display_name || 'כל החנויות'} • {stats?.total_reviews || 0} ביקורות
+              {selectedShop?.display_name || 'כל החנויות'} • {stats?.total_reviews || 0} {t('reviews.total')}
             </p>
           </div>
         </div>
@@ -340,20 +341,20 @@ export default function ReviewsPage() {
           <>
             {/* Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard icon={Star} label="דירוג ממוצע" value={stats?.average_rating_display || '0.00'} subtext="מתוך 5 כוכבים" color="text-yellow-500" />
-              <StatCard icon={MessageSquare} label='סה"כ ביקורות' value={stats?.total_reviews || 0} />
-              <StatCard icon={TrendingUp} label="30 יום אחרונים" value={stats?.reviews_last_30_days || 0} subtext="ביקורות חדשות" />
-              <StatCard icon={ThumbsUp} label="חיוביות" value={`${positivePercentage}%`} subtext="4-5 כוכבים" />
+              <StatCard icon={Star} label={t('reviews.avgRating')} value={stats?.average_rating_display || '0.00'} subtext={t('reviews.outOf5')} color="text-yellow-500" />
+              <StatCard icon={MessageSquare} label={t('reviews.total')} value={stats?.total_reviews || 0} />
+              <StatCard icon={TrendingUp} label={t('reviews.last30Days')} value={stats?.reviews_last_30_days || 0} subtext={t('reviews.newReviews')} />
+              <StatCard icon={ThumbsUp} label={t('reviews.positive')} value={`${positivePercentage}%`} subtext={t('reviews.fourFiveStars')} />
             </div>
 
             {/* Rating Distribution */}
-            {stats && <RatingDistribution distribution={stats.rating_distribution} total={stats.total_reviews} />}
+            {stats && <RatingDistribution distribution={stats.rating_distribution} total={stats.total_reviews} t={t} />}
 
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <select value={ratingFilter ?? ''} onChange={(e) => setRatingFilter(e.target.value ? Number(e.target.value) : null)}
                 className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#006d43]">
-                <option value="">כל הדירוגים</option>
+                <option value="">{t('reviews.allRatings')}</option>
                 <option value="5">⭐⭐⭐⭐⭐ (5)</option>
                 <option value="4">⭐⭐⭐⭐ (4)</option>
                 <option value="3">⭐⭐⭐ (3)</option>
@@ -362,16 +363,16 @@ export default function ReviewsPage() {
               </select>
               <select value={hasTextFilter === null ? '' : String(hasTextFilter)} onChange={(e) => setHasTextFilter(e.target.value === '' ? null : e.target.value === 'true')}
                 className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#006d43]">
-                <option value="">כל הביקורות</option>
-                <option value="true">עם טקסט</option>
-                <option value="false">בלי טקסט</option>
+                <option value="">{t('reviews.allReviews')}</option>
+                <option value="true">{t('reviews.withText')}</option>
+                <option value="false">{t('reviews.withoutText')}</option>
               </select>
               <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
                 className="px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#006d43]">
-                <option value="created_desc">החדשות קודם</option>
-                <option value="created_asc">הישנות קודם</option>
-                <option value="rating_desc">דירוג גבוה קודם</option>
-                <option value="rating_asc">דירוג נמוך קודם</option>
+                <option value="created_desc">{t('reviews.newestFirst')}</option>
+                <option value="created_asc">{t('reviews.oldestFirst')}</option>
+                <option value="rating_desc">{t('reviews.highestRating')}</option>
+                <option value="rating_asc">{t('reviews.lowestRating')}</option>
               </select>
             </div>
 
@@ -380,8 +381,8 @@ export default function ReviewsPage() {
               {reviews.length === 0 ? (
                 <div className="bg-white rounded-xl p-12 text-center shadow-sm border border-gray-100">
                   <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-600 mb-2">אין ביקורות</h3>
-                  <p className="text-gray-400">לחץ על &quot;סנכרן ביקורות&quot; כדי לייבא ביקורות מ-Etsy</p>
+                  <h3 className="text-lg font-medium text-gray-600 mb-2">{t('reviews.none')}</h3>
+                  <p className="text-gray-400">{t('reviews.noneHint')}</p>
                 </div>
               ) : (
                 reviews.map((review) => (
@@ -403,7 +404,7 @@ export default function ReviewsPage() {
               <div className="text-center">
                 <button onClick={() => loadData(false)} disabled={loadingMore}
                   className="px-6 py-3 bg-white border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50">
-                  {loadingMore ? 'טוען...' : 'טען עוד ביקורות'}
+                  {loadingMore ? t('reviews.loading') : t('reviews.loadMore')}
                 </button>
               </div>
             )}

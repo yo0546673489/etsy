@@ -17,11 +17,11 @@ function cn(...cls: (string | boolean | undefined | null)[]) {
 
 // ─── Status configs ──────────────────────────────────────────────────────────
 
-const statusConfig: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  active:    { label: 'פעיל',    bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500' },
-  paused:    { label: 'מושהה',   bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
-  draft:     { label: 'טיוטה',   bg: 'bg-gray-100',   text: 'text-gray-600',   dot: 'bg-gray-400' },
-  completed: { label: 'הסתיים',  bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-500' },
+const statusConfig: Record<string, { tKey: string; bg: string; text: string; dot: string }> = {
+  active:    { tKey: 'discounts.status.active',    bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500' },
+  paused:    { tKey: 'discounts.status.paused',    bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
+  draft:     { tKey: 'discounts.status.draft',     bg: 'bg-gray-100',   text: 'text-gray-600',   dot: 'bg-gray-400' },
+  completed: { tKey: 'discounts.status.completed', bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-500' },
 };
 
 const taskStatusIcon: Record<string, string> = {
@@ -34,11 +34,12 @@ const taskStatusIcon: Record<string, string> = {
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useLanguage();
   const cfg = statusConfig[status] || statusConfig.draft;
   return (
     <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium', cfg.bg, cfg.text)}>
       <span className={cn('w-1.5 h-1.5 rounded-full', cfg.dot)} />
-      {cfg.label}
+      {t(cfg.tKey)}
     </span>
   );
 }
@@ -52,6 +53,8 @@ function RuleCard({ rule, onToggle, onEdit, onDelete, onTriggerRotation }: {
   onDelete: () => void;
   onTriggerRotation?: () => void;
 }) {
+  const { t } = useLanguage();
+  const manualLabel = t('discounts.manual');
   const scopeLabel = rule.scope === 'entire_shop' ? 'כל החנות'
     : rule.scope === 'specific_listings' ? `${rule.listing_ids?.length || 0} מוצרים נבחרים`
     : 'קטגוריה';
@@ -84,7 +87,7 @@ function RuleCard({ rule, onToggle, onEdit, onDelete, onTriggerRotation }: {
               </span>
             ) : (
               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                ידני
+                {manualLabel}
               </span>
             )}
           </div>
@@ -696,12 +699,12 @@ function BulkActionModal({ shopCount, onClose, onApplyAll, onDeactivateAll }: {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-const TABS = [
-  { key: 'all',       label: 'כל הכללים' },
-  { key: 'active',    label: 'פעילים' },
-  { key: 'draft',     label: 'טיוטות' },
-  { key: 'paused',    label: 'מושהים' },
-  { key: 'history',   label: 'היסטוריית ביצועים' },
+const TAB_KEYS = [
+  { key: 'all',     tKey: 'discounts.all' },
+  { key: 'active',  tKey: 'discounts.active' },
+  { key: 'draft',   tKey: 'discounts.drafts' },
+  { key: 'paused',  tKey: 'discounts.paused' },
+  { key: 'history', tKey: 'discounts.history' },
 ];
 
 function shopSortKey(name: string) {
@@ -712,7 +715,7 @@ function shopSortKey(name: string) {
 export default function DiscountsPage() {
   const { shops, selectedShop, selectedShops } = useShop();
   const { showToast } = useToast();
-  const { isRTL } = useLanguage();
+  const { isRTL, t: tl } = useLanguage();
 
   const [tab, setTab] = useState('all');
   // map: shopId → rules
@@ -890,9 +893,9 @@ export default function DiscountsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
               <Tag className="w-6 h-6 text-[#006d43]" />
-              ניהול הנחות
+              {tl('discounts.title')}
             </h1>
-            <p className="text-gray-500 text-sm mt-1">נהל הנחות על מוצרים ועל החנות שלך</p>
+            <p className="text-gray-500 text-sm mt-1">{tl('discounts.subtitle')}</p>
           </div>
           <div className="flex gap-3">
             <button onClick={loadData} className="p-2 text-gray-400 hover:text-[#006d43] transition-colors rounded-lg hover:bg-gray-50">
@@ -913,7 +916,7 @@ export default function DiscountsPage() {
               className="flex items-center gap-2 px-4 py-2 bg-[#006d43] text-white rounded-lg font-medium hover:bg-[#005535] transition-colors disabled:opacity-50 text-sm"
             >
               <Plus className="w-4 h-4" />
-              הנחה חדשה
+              {tl('discounts.new')}
             </button>
           </div>
         </div>
@@ -926,21 +929,21 @@ export default function DiscountsPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 bg-white rounded-xl p-1 shadow-sm border border-gray-100 overflow-x-auto">
-          {TABS.map(t => (
+          {TAB_KEYS.map(tabItem => (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
+              key={tabItem.key}
+              onClick={() => setTab(tabItem.key)}
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors',
-                tab === t.key
+                tab === tabItem.key
                   ? 'bg-[#006d43] text-white'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               )}
             >
-              {t.label}
-              {t.key !== 'history' && t.key !== 'all' && (
+              {tl(tabItem.tKey)}
+              {tabItem.key !== 'history' && tabItem.key !== 'all' && (
                 <span className="mr-1.5 text-xs opacity-70">
-                  ({allRules.filter(r => r.status === t.key).length})
+                  ({allRules.filter(r => r.status === tabItem.key).length})
                 </span>
               )}
             </button>

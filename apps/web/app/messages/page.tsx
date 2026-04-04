@@ -21,13 +21,11 @@ function isSameDay(a: string, b: string) {
   return new Date(a).toDateString() === new Date(b).toDateString();
 }
 
-const statusLabels: Record<string, string> = {
-  new: 'חדש', open: 'פתוח', answered: 'נענה', closed: 'סגור',
-};
+// statusLabels are now built dynamically from t() in the component
 
 export default function MessagesPage() {
   const { selectedShops, shops } = useShop();
-  const { isRTL } = useLanguage();
+  const { isRTL, t } = useLanguage();
   const [msgStores, setMsgStores] = useState<MsgStore[]>([]);
   const [conversations, setConversations] = useState<MsgConversation[]>([]);
   const [convLoading, setConvLoading] = useState(true);
@@ -198,10 +196,10 @@ export default function MessagesPage() {
           {/* Header */}
           <div className="px-5 pt-5 pb-3 flex-shrink-0">
             <div className="flex items-center justify-between mb-3">
-              <h1 className="text-xl font-black text-gray-800">הודעות</h1>
+              <h1 className="text-xl font-black text-gray-800">{t('messages.title')}</h1>
               {unreadCount > 0 && (
                 <span className="bg-[#006d43] text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {unreadCount} שלא נקראו
+                  {unreadCount} {t('messages.unread')}
                 </span>
               )}
             </div>
@@ -217,7 +215,7 @@ export default function MessagesPage() {
             >
               <div className="flex items-center gap-2">
                 <Bot className={`w-4 h-4 ${globalAiMode ? 'text-[#006d43]' : 'text-gray-400'}`} />
-                <span className="text-sm font-medium">מענה AI אוטומטי</span>
+                <span className="text-sm font-medium">{t('messages.aiAutoReply')}</span>
               </div>
               {/* Toggle Switch — dir=ltr so circle moves right when ON */}
               <div dir="ltr" className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${globalAiMode ? 'bg-[#006d43]' : 'bg-gray-300'}`}>
@@ -231,11 +229,11 @@ export default function MessagesPage() {
                 onChange={e => setStatusFilter(e.target.value)}
                 className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 bg-gray-50 text-gray-600 focus:outline-none appearance-none cursor-pointer"
               >
-                <option value="">כל הסטטוסים</option>
-                <option value="new">חדש</option>
-                <option value="open">פתוח</option>
-                <option value="answered">נענה</option>
-                <option value="closed">סגור</option>
+                <option value="">{t('messages.allStatuses')}</option>
+                <option value="new">{t('messages.status.new')}</option>
+                <option value="open">{t('messages.status.open')}</option>
+                <option value="answered">{t('messages.status.answered')}</option>
+                <option value="closed">{t('messages.status.closed')}</option>
               </select>
               <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
@@ -245,15 +243,15 @@ export default function MessagesPage() {
           <div className="flex-1 overflow-y-auto">
             {apiError ? (
               <div className="p-6 text-center text-sm text-gray-400">
-                <p className="mb-2">לא ניתן להתחבר למערכת ההודעות</p>
-                <button onClick={loadConversations} className="text-xs underline text-[#006d43]">נסה שוב</button>
+                <p className="mb-2">{t('messages.cannotConnect')}</p>
+                <button onClick={loadConversations} className="text-xs underline text-[#006d43]">{t('messages.tryAgain')}</button>
               </div>
             ) : convLoading ? (
               <MsgSkeleton count={7} />
             ) : displayedConversations.length === 0 ? (
               <div className="p-6 text-center">
                 <MessageCircle className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                <p className="text-sm text-gray-400">אין שיחות להצגה</p>
+                <p className="text-sm text-gray-400">{t('messages.noConversations')}</p>
               </div>
             ) : (
               displayedConversations.map(conv => (
@@ -275,8 +273,8 @@ export default function MessagesPage() {
               <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                 <MessageCircle className="w-10 h-10 text-gray-300" />
               </div>
-              <p className="text-base font-semibold text-gray-500">בחר שיחה מהרשימה</p>
-              <p className="text-sm text-gray-400 mt-1">כדי לצפות בהודעות ולשלוח תגובות</p>
+              <p className="text-base font-semibold text-gray-500">{t('messages.selectConversation')}</p>
+              <p className="text-sm text-gray-400 mt-1">{t('messages.toViewMessages')}</p>
             </div>
           ) : (
             <>
@@ -298,8 +296,8 @@ export default function MessagesPage() {
                   onChange={e => handleStatusChange(e.target.value)}
                   className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-600 focus:outline-none"
                 >
-                  {Object.entries(statusLabels).map(([v, l]) => (
-                    <option key={v} value={v}>{l}</option>
+                  {(['new', 'open', 'answered', 'closed'] as const).map(v => (
+                    <option key={v} value={v}>{t(`messages.status.${v}`)}</option>
                   ))}
                 </select>
               </div>
@@ -340,7 +338,7 @@ export default function MessagesPage() {
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="flex justify-center items-center h-full text-sm text-gray-400">
-                    אין הודעות עדיין
+                    {t('messages.noMessages')}
                   </div>
                 ) : (
                   <>
@@ -383,11 +381,11 @@ export default function MessagesPage() {
                 {globalAiMode && (
                   <div className="flex items-center gap-1.5 mb-2 text-xs text-[#006d43] font-medium">
                     <Bot className="w-3.5 h-3.5" />
-                    <span>AI עונה אוטומטית — תוכל לכתוב ידנית בכל זמן</span>
+                    <span>{t('messages.aiAnswering')}</span>
                   </div>
                 )}
                 {sendFailed && (
-                  <p className="text-xs text-red-500 mb-2">שליחה נכשלה ❌ — בדוק שהמערכת פועלת</p>
+                  <p className="text-xs text-red-500 mb-2">{t('messages.sendFailed')}</p>
                 )}
                 <div className="flex items-end gap-2 bg-gray-50 rounded-2xl border border-gray-200 px-3 py-2">
                   <button className="p-1.5 text-gray-400 hover:text-gray-600 flex-shrink-0">
@@ -398,7 +396,7 @@ export default function MessagesPage() {
                     value={replyText}
                     onChange={e => { setReplyText(e.target.value); setSendFailed(false); }}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                    placeholder="הקלד את ההודעה שלך כאן..."
+                    placeholder={t('messages.typeMessage')}
                     disabled={sending}
                     rows={1}
                     dir={isRTL ? 'rtl' : 'ltr'}

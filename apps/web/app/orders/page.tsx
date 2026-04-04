@@ -36,7 +36,7 @@ import {
 } from '@/lib/order-status';
 
 /* ────────── Badge תשלום ────────── */
-function PaymentBadge({ status }: { status: string }) {
+function PaymentBadge({ status, t }: { status: string; t: (key: string) => string }) {
   const normalized = normalizePaymentStatus(status);
   const isPaid = normalized === 'paid';
   return (
@@ -47,25 +47,25 @@ function PaymentBadge({ status }: { status: string }) {
         : 'bg-yellow-50 text-yellow-700'
     )}>
       <span className={cn('w-1.5 h-1.5 rounded-full', isPaid ? 'bg-green-500' : 'bg-yellow-500')} />
-      {isPaid ? 'שולם' : 'לא שולם'}
+      {isPaid ? t('order.payment.paid') : t('order.payment.unpaid')}
     </span>
   );
 }
 
 /* ────────── Badge סטטוס הזמנה ────────── */
-function OrderBadge({ status }: { status: string }) {
+function OrderBadge({ status, t }: { status: string; t: (key: string) => string }) {
   const normalized = normalizeOrderStatus(status);
-  const map: Record<string, { label: string; cls: string }> = {
-    completed:  { label: 'הושלם',  cls: 'bg-green-50 text-green-700' },
-    in_transit: { label: 'בדרך',   cls: 'bg-blue-50 text-blue-700' },
-    processing: { label: 'בתהליך', cls: 'bg-sky-50 text-sky-700' },
-    cancelled:  { label: 'בוטל',   cls: 'bg-red-50 text-red-600' },
-    refunded:   { label: 'הוחזר',  cls: 'bg-gray-100 text-gray-600' },
+  const map: Record<string, { tKey: string; cls: string }> = {
+    completed:  { tKey: 'order.status.completed',  cls: 'bg-green-50 text-green-700' },
+    in_transit: { tKey: 'order.status.in_transit',  cls: 'bg-blue-50 text-blue-700' },
+    processing: { tKey: 'order.status.processing', cls: 'bg-sky-50 text-sky-700' },
+    cancelled:  { tKey: 'order.status.cancelled',  cls: 'bg-red-50 text-red-600' },
+    refunded:   { tKey: 'order.status.refunded',   cls: 'bg-gray-100 text-gray-600' },
   };
-  const cfg = map[normalized] ?? { label: status, cls: 'bg-gray-100 text-gray-600' };
+  const cfg = map[normalized] ?? { tKey: '', cls: 'bg-gray-100 text-gray-600' };
   return (
     <span className={cn('inline-flex px-2.5 py-1 rounded-md text-xs font-semibold', cfg.cls)}>
-      {cfg.label}
+      {cfg.tKey ? t(cfg.tKey) : status}
     </span>
   );
 }
@@ -225,7 +225,7 @@ function OrdersContent() {
   const statCards = [
     {
       key: 'paid',
-      label: 'שולמו',
+      label: t('orders.stat.paid'),
       value: stats?.payment_status.paid ?? 0,
       icon: <CheckCircle2 className="w-5 h-5 text-green-600" />,
       iconBg: 'bg-green-100',
@@ -235,7 +235,7 @@ function OrdersContent() {
     },
     {
       key: 'unpaid',
-      label: 'לא שולמו',
+      label: t('orders.stat.unpaid'),
       value: stats?.payment_status.unpaid ?? 0,
       icon: <Clock className="w-5 h-5 text-red-400" />,
       iconBg: 'bg-red-50',
@@ -245,7 +245,7 @@ function OrdersContent() {
     },
     {
       key: 'processing',
-      label: 'בתהליך',
+      label: t('orders.stat.processing'),
       value: stats?.order_status.processing ?? 0,
       icon: <RefreshCcw className="w-5 h-5 text-blue-500" />,
       iconBg: 'bg-blue-50',
@@ -255,7 +255,7 @@ function OrdersContent() {
     },
     {
       key: 'cancelled',
-      label: 'בוטלו',
+      label: t('orders.stat.cancelled'),
       value: stats?.order_status.cancelled ?? 0,
       icon: <XCircle className="w-5 h-5 text-red-500" />,
       iconBg: 'bg-red-50',
@@ -265,7 +265,7 @@ function OrdersContent() {
     },
     {
       key: 'refunded',
-      label: 'הוחזרו',
+      label: t('orders.stat.refunded'),
       value: stats?.order_status.refunded ?? 0,
       icon: <RotateCcw className="w-5 h-5 text-gray-500" />,
       iconBg: 'bg-gray-100',
@@ -319,12 +319,12 @@ function OrdersContent() {
 
         {/* header of table section */}
         <div className="px-6 py-5 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h2 className="text-lg font-black text-gray-800">עסקאות אחרונות</h2>
+          <h2 className="text-lg font-black text-gray-800">{t('orders.recentTransactions')}</h2>
           <div className="flex items-center gap-3 flex-wrap">
             {/* חיפוש */}
             <div dir={isRTL ? 'rtl' : 'ltr'}>
               <SearchInput
-                placeholder="חפש הזמנה..."
+                placeholder={t('orders.searchPlaceholder')}
                 value={searchQuery}
                 onChange={setSearchQuery}
               />
@@ -332,12 +332,12 @@ function OrdersContent() {
             {/* ייצא */}
             <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
               <Download className="w-4 h-4" />
-              ייצא נתונים
+              {t('orders.exportData')}
             </button>
             {/* סינון מתקדם */}
             <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
               <SlidersHorizontal className="w-4 h-4" />
-              סינון מתקדם
+              {t('orders.advancedFilter')}
             </button>
             {/* נקה סינון */}
             {(statusFilter || paymentFilter) && (
@@ -345,7 +345,7 @@ function OrdersContent() {
                 onClick={() => router.push('/orders')}
                 className="text-sm text-[#006d43] font-semibold hover:underline"
               >
-                נקה סינון
+                {t('orders.clearFilter')}
               </button>
             )}
           </div>
@@ -360,7 +360,7 @@ function OrdersContent() {
           ) : filteredOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
               <p className="text-gray-400 text-lg">{t('orders.noOrders')}</p>
-              {searchQuery && <p className="text-gray-400 text-sm mt-2">נסה לשנות את החיפוש</p>}
+              {searchQuery && <p className="text-gray-400 text-sm mt-2">{t('orders.adjustSearch')}</p>}
             </div>
           ) : (
             <table className="w-full text-right">
@@ -373,14 +373,14 @@ function OrdersContent() {
                       onChange={toggleSelectAll}
                     />
                   </th>
-                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">מספר הזמנה</th>
-                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">חנות</th>
-                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">תאריך</th>
-                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">סכום</th>
-                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">מעקב</th>
-                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">תשלום</th>
-                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">סטטוס</th>
-                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide text-center">פעולות</th>
+                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">{t('orders.table.orderNumber')}</th>
+                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">{t('orders.table.shop')}</th>
+                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">{t('orders.table.date')}</th>
+                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">{t('orders.table.amount')}</th>
+                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">{t('orders.table.tracking')}</th>
+                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">{t('orders.table.payment')}</th>
+                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide">{t('common.status')}</th>
+                  <th className="py-3.5 px-5 text-xs font-semibold text-gray-400 tracking-wide text-center">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -436,12 +436,12 @@ function OrdersContent() {
 
                     {/* תשלום */}
                     <td className="py-4 px-5">
-                      <PaymentBadge status={order.payment_status} />
+                      <PaymentBadge status={order.payment_status} t={t} />
                     </td>
 
                     {/* סטטוס */}
                     <td className="py-4 px-5">
-                      <OrderBadge status={order.lifecycle_status || order.status} />
+                      <OrderBadge status={order.lifecycle_status || order.status} t={t} />
                     </td>
 
                     {/* פעולות */}

@@ -225,7 +225,7 @@ function OwnerDashboardContent() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1st = RIGHTMOST: יתרה נוכחית */}
         <StatCard
-          badge={payoutAmount < 0 ? 'חוב' : 'עדכני'}
+          badge={payoutAmount < 0 ? t('dashboard.badge.debt') : t('dashboard.badge.current')}
           badgeColor={payoutAmount < 0 ? 'text-red-500' : 'text-[#006d43]'}
           icon={Wallet}
           iconBg={payoutAmount < 0 ? 'bg-red-50' : 'bg-green-50'}
@@ -235,8 +235,8 @@ function OwnerDashboardContent() {
         />
         {/* 2nd: כסף משוחרר לבנק */}
         <StatCard
-          badge={depositAmount && depositAmount > 0 ? 'זמין' : 'עדכני'}
-          badgeColor={depositAmount && depositAmount > 0 ? 'text-[#006d43]' : 'text-[#006d43]'}
+          badge={depositAmount && depositAmount > 0 ? t('dashboard.badge.available') : t('dashboard.badge.current')}
+          badgeColor="text-[#006d43]"
           icon={CreditCard}
           iconBg="bg-purple-50"
           iconColor="text-purple-500"
@@ -255,7 +255,7 @@ function OwnerDashboardContent() {
         />
         {/* 4th = LEFTMOST: צפיות בחנות */}
         <StatCard
-          badge={shopViews === null ? 'לא זמין' : 'מצטבר'}
+          badge={shopViews === null ? t('dashboard.badge.unavailable') : t('dashboard.badge.cumulative')}
           badgeColor="text-orange-400"
           icon={Eye}
           iconBg="bg-orange-50"
