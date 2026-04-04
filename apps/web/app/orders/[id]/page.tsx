@@ -71,6 +71,19 @@ export default function OrderDetailPage() {
 
   const isSupplier = user?.role?.toLowerCase() === 'supplier';
 
+  const ETSY_CARRIERS = [
+    'USPS', 'UPS', 'FedEx', 'DHL', 'TNT', 'Aramex',
+    'LaserShip', 'ABF Freight', 'OnTrac', 'Direct Link', 'YRC Freight',
+    'Asendia USA', 'UPS Freight', 'Skynet Worldwide Express', 'Evergreen',
+    'Estes', 'RL Carriers', 'i-parcel', 'APC Postal Logistics', 'Greyhound',
+    'uShip', 'Amazon Logistics US', 'Freightquote by C. H. Robinson',
+    'Courier Express', 'ePost Global', 'FedEx Cross Border', 'UDS',
+    'Spee-Dee', 'Better Trucks', 'GSO', 'CDL', 'Spring GDS',
+    'Tusk Logistics', 'Passport Shipping', 'Israel Post',
+    'Other', 'Not Available',
+  ];
+  const [carrierMode, setCarrierMode] = useState<'select' | 'custom'>('select');
+
   useEffect(() => {
     if (!orderId) return;
     ordersApi.getById(orderId)
@@ -233,13 +246,44 @@ export default function OrderDetailPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">חברת שליחויות</label>
-                  <input
-                    type="text"
-                    value={carrierName}
-                    onChange={e => setCarrierName(e.target.value)}
-                    placeholder="לדוג׳: DHL, FedEx, Israel Post"
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#006d43] transition-colors"
-                  />
+                  {carrierMode === 'select' ? (
+                    <select
+                      value={ETSY_CARRIERS.includes(carrierName) ? carrierName : ''}
+                      onChange={e => {
+                        if (e.target.value === '__custom__') {
+                          setCarrierMode('custom');
+                          setCarrierName('');
+                        } else {
+                          setCarrierName(e.target.value);
+                        }
+                      }}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#006d43] transition-colors"
+                    >
+                      <option value="">— בחר חברת שליחויות —</option>
+                      {ETSY_CARRIERS.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                      <option value="__custom__">✏️ הכנס חברה אחרת...</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={carrierName}
+                        onChange={e => setCarrierName(e.target.value)}
+                        placeholder="שם חברת השליחויות"
+                        autoFocus
+                        className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#006d43] transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setCarrierMode('select'); setCarrierName(''); }}
+                        className="px-3 py-2.5 bg-gray-100 text-gray-500 rounded-xl text-xs hover:bg-gray-200 transition-colors"
+                      >
+                        ← רשימה
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2 pt-1">
                   {!isShipped && (
