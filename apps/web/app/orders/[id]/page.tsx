@@ -1,802 +1,328 @@
 'use client';
 
-/**
- * Order Detail Page
- * - All roles (owner/admin/supplier) can fulfill + sync to Etsy
- * - "Record Manual Tracking" toggle for local-only tracking
- * - Shows assigned supplier in header
- * - Shipment badges: "Synced to Etsy" vs "Manual", recorded-by info
- */
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { DashboardCard } from '@/components/dashboard/DashboardCard';
-import { ArrowLeft, Package, Calendar, User, MapPin, CreditCard, RefreshCcw, Truck, CheckCircle, Globe, FileText, ChevronDown } from 'lucide-react';
-import { ordersApi, OrderDetail, teamApi, TeamMember } from '@/lib/api';
+import { ordersApi, OrderDetail } from '@/lib/api';
 import { useToast } from '@/lib/toast-context';
-import { cn } from '@/lib/utils';
-import { useShop } from '@/lib/shop-context';
 import { useAuth } from '@/lib/auth-context';
+import { normalizeOrderStatus, normalizePaymentStatus } from '@/lib/order-status';
 import {
-  ORDER_STATUS_BADGE_CLASSES,
-  ORDER_STATUS_LABELS,
-  PAYMENT_STATUS_STYLES,
-  normalizeOrderStatus,
-  normalizePaymentStatus,
-} from '@/lib/order-status';
+  ArrowRight,
+  Package,
+  MapPin,
+  Truck,
+  CreditCard,
+  User,
+  Hash,
+  CheckCircle2,
+  Loader2,
+  ExternalLink,
+  Save,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const CARRIER_OPTIONS = [
-  { value: 'usps', label: 'USPS' },
-  { value: 'ups', label: 'UPS' },
-  { value: 'fedex', label: 'FedEx' },
-  { value: 'dhl', label: 'DHL Express' },
-  { value: 'canadapost', label: 'Canada Post' },
-  { value: 'royalmail', label: 'Royal Mail' },
-  { value: 'deutschepost', label: 'Deutsche Post' },
-  { value: 'chinapost', label: 'China Post' },
-  { value: 'japanpost', label: 'Japan Post' },
-  { value: 'australiapost', label: 'Australia Post' },
-  { value: 'other', label: 'Other' },
-];
-
-function PaymentStatus({ status }: { status: string }) {
-  const normalized = normalizePaymentStatus(status);
-  const isPaid = normalized === 'paid';
-  return (
-    <div className={isPaid ? 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50' : 'inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-50'}>
-      <span className={isPaid ? 'w-2 h-2 rounded-full bg-green-600' : 'w-2 h-2 rounded-full bg-yellow-500'} />
-      <span className={isPaid ? 'text-sm font-medium text-green-600' : 'text-sm font-medium text-yellow-700'}>
-        {normalized.charAt(0).toUpperCase() + normalized.slice(1)}
-      </span>
-    </div>
-  );
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    completed:  { label: 'הושלם',  cls: 'bg-green-100 text-green-700' },
+    in_transit: { label: 'בדרך',   cls: 'bg-blue-100 text-blue-700' },
+    processing: { label: 'בתהליך', cls: 'bg-yellow-100 text-yellow-700' },
+    cancelled:  { label: 'בוטל',   cls: 'bg-red-100 text-red-700' },
+    refunded:   { label: 'הוחזר',  cls: 'bg-gray-100 text-gray-600' },
+  };
+  const s = map[normalizeOrderStatus(status)] ?? { label: status, cls: 'bg-gray-100 text-gray-600' };
+  return <span className={cn('px-3 py-1 rounded-full text-sm font-semibold', s.cls)}>{s.label}</span>;
 }
 
-function OrderStatus({ status }: { status: string }) {
-  const normalized = normalizeOrderStatus(status);
-  let badgeClass = '';
-  switch (normalized) {
-    case 'completed': badgeClass = 'bg-green-50 text-green-700'; break;
-    case 'in_transit': badgeClass = 'bg-yellow-50 text-yellow-700'; break;
-    case 'cancelled': badgeClass = 'bg-red-50 text-red-700'; break;
-    case 'refunded': badgeClass = 'bg-gray-200 text-gray-800'; break;
-    default: badgeClass = 'bg-gray-100 text-gray-700';
-  }
+function PaymentBadge({ status }: { status: string }) {
+  const isPaid = normalizePaymentStatus(status) === 'paid';
   return (
-    <span className={`inline-flex px-3 py-1.5 rounded-full text-sm font-medium ${badgeClass}`}>
-      {ORDER_STATUS_LABELS[normalized]}
+    <span className={cn(
+      'px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1.5 w-fit',
+      isPaid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+    )}>
+      <span className={cn('w-1.5 h-1.5 rounded-full', isPaid ? 'bg-green-500' : 'bg-yellow-500')} />
+      {isPaid ? 'שולם' : 'לא שולם'}
     </span>
   );
 }
 
-function ShipmentSourceBadge({ source, recordedBy, recordedByRole }: { source?: string; recordedBy?: string; recordedByRole?: string }) {
-  const isEtsy = source === 'etsy_sync';
+function InfoRow({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null;
   return (
-    <div className="flex flex-wrap items-center gap-2 mt-2">
-      <span className={cn(
-        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium',
-        isEtsy ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600',
-      )}>
-        {isEtsy ? <Globe className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-        {isEtsy ? 'סונכרן עם Etsy' : 'ידני'}
-      </span>
-      {recordedBy && (
-        <span className="text-xs text-[var(--text-muted)]">
-          על ידי {recordedBy}{recordedByRole ? ` (${recordedByRole})` : ''}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function OrderDetailContent() {
-  const router = useRouter();
-  const params = useParams();
-  const { showToast } = useToast();
-  const { selectedShopId } = useShop();
-  const { user } = useAuth();
-  const [order, setOrder] = useState<OrderDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [fulfilling, setFulfilling] = useState(false);
-  const [trackingCode, setTrackingCode] = useState('');
-  const [carrierName, setCarrierName] = useState('');
-  const [shipDate, setShipDate] = useState(new Date().toISOString().split('T')[0]);
-  const [note, setNote] = useState('');
-  const [sendBcc, setSendBcc] = useState(false);
-  const [manualOnly, setManualOnly] = useState(false);
-  const [fulfillResult, setFulfillResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [suppliers, setSuppliers] = useState<TeamMember[]>([]);
-  const [selectedSupplierId, setSelectedSupplierId] = useState<number | null>(null);
-  const [assigningSupplier, setAssigningSupplier] = useState(false);
-  const [trackingError, setTrackingError] = useState('');
-  const [carrierError, setCarrierError] = useState('');
-  const trackingInputRef = useRef<HTMLInputElement>(null);
-
-  // Custom dropdown state
-  const [carrierDropdownOpen, setCarrierDropdownOpen] = useState(false);
-  const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
-
-  const orderId = typeof params?.id === 'string' ? parseInt(params.id, 10) : null;
-  const canFulfill = user?.role === 'supplier' || user?.role === 'owner' || user?.role === 'admin';
-  const canAssign = user?.role === 'owner' || user?.role === 'admin';
-
-  useEffect(() => {
-    if (orderId) loadOrder();
-  }, [orderId]);
-
-  useEffect(() => {
-    if (canAssign) {
-      teamApi.getMembers()
-        .then((members) => setSuppliers(members.filter((m) => m.role === 'supplier')))
-        .catch(() => setSuppliers([]));
-    }
-  }, [user?.role]);
-
-  const loadOrder = async () => {
-    if (!orderId) return;
-    try {
-      setLoading(true);
-      const data = await ordersApi.getById(orderId);
-      setOrder(data);
-    } catch (error: any) {
-      console.error('Failed to load order:', error);
-      showToast(error.detail || 'טעינת ההזמנה נכשלה', 'error');
-      router.push('/orders');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Pre-fill tracking form from latest shipment when order changes
-  useEffect(() => {
-    if (!order) return;
-    const shipments = (order as any).shipments || [];
-    if (shipments.length > 0) {
-      const latest = shipments[shipments.length - 1];
-      setTrackingCode(latest.tracking_code || '');
-      setCarrierName(latest.carrier_name || '');
-      setShipDate(
-        latest.shipping_date
-          ? String(latest.shipping_date).split('T')[0]
-          : new Date().toISOString().split('T')[0],
-      );
-    }
-  }, [order?.id]);
-
-  const handleSyncOrder = async () => {
-    try {
-      setSyncing(true);
-      showToast('מסנכרן הזמנה מ-Etsy...', 'info');
-      await ordersApi.sync({ shopId: selectedShopId });
-      showToast('ההזמנה סונכרנה בהצלחה!', 'success');
-      await loadOrder();
-    } catch (error: any) {
-      showToast(error.detail || 'סנכרון ההזמנה נכשל', 'error');
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const handleFulfillOrder = async () => {
-    if (!order) return;
-
-    // Reset errors
-    setTrackingError('');
-    setCarrierError('');
-
-    let hasError = false;
-
-    if (!trackingCode.trim()) {
-      setTrackingError('נדרש מספר מעקב');
-      trackingInputRef.current?.focus();
-      hasError = true;
-    }
-    if (!carrierName) {
-      setCarrierError('יש לבחור חברת שליחויות');
-      hasError = true;
-    }
-
-    if (hasError) {
-      const missing = [];
-      if (!trackingCode.trim()) missing.push('מספר מעקב');
-      if (!carrierName) missing.push('חברת שליחויות');
-      showToast(`יש למלא שדות חובה: ${missing.join(', ')}`, 'error');
-      return;
-    }
-
-    try {
-      setFulfilling(true);
-      const payload = {
-        tracking_code: trackingCode.trim(),
-        carrier_name: carrierName.trim() || undefined,
-        note: note.trim() || undefined,
-        ship_date: shipDate,
-      };
-      let message = '';
-      let result: any = null;
-      if (manualOnly) {
-        result = await ordersApi.recordTracking(order.id, payload);
-        message = 'מעקב נשמר (ידני בלבד — לא סונכרן עם Etsy)';
-        showToast(message, 'success');
-      } else {
-        result = await ordersApi.fulfill(order.id, { ...payload, send_bcc: sendBcc });
-        if (result && result.status === 'already_synced') {
-          message = 'מעקב כבר קיים ב-Etsy';
-        } else {
-          message = 'מעקב נשלח וסונכרן עם Etsy בהצלחה!';
-        }
-        showToast(message, 'success');
-      }
-      setTrackingCode('');
-      setCarrierName('');
-      setNote('');
-      await loadOrder();
-      setFulfillResult({ type: 'success', message });
-      setTimeout(() => setFulfillResult(null), 5000);
-    } catch (error: any) {
-      const message = error.detail || 'שליחת המעקב נכשלה';
-      showToast(message, 'error');
-      setFulfillResult({ type: 'error', message });
-      setTimeout(() => setFulfillResult(null), 5000);
-    } finally {
-      setFulfilling(false);
-    }
-  };
-
-  const handleAssignSupplier = async () => {
-    if (!order || !selectedSupplierId) return;
-    try {
-      setAssigningSupplier(true);
-      await ordersApi.assignSupplier(order.id, selectedSupplierId);
-      showToast('הספק שויך להזמנה', 'success');
-      await loadOrder();
-    } catch (error: any) {
-      showToast(error.detail || 'שיוך הספק נכשל', 'error');
-    } finally {
-      setAssigningSupplier(false);
-    }
-  };
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
-  };
-
-  if (loading) {
-    return (
-      <div className="max-w-[1400px] mx-auto space-y-6">
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!order) {
-    return (
-      <div className="max-w-[1400px] mx-auto space-y-6">
-        <div className="flex flex-col items-center justify-center py-20">
-          <p className="text-[var(--text-muted)] text-lg">ההזמנה לא נמצאה</p>
-        </div>
-      </div>
-    );
-  }
-
-  const orderDetail = order as any; // access supplier_name etc.
-
-  const syncStatus = order.shipments && order.shipments.length > 0
-    ? order.shipments.some((s: any) => s.source === 'etsy_sync')
-      ? (
-        <span className="px-2 py-0.5 text-xs rounded-full bg-green-50 text-green-700">
-          סונכרן עם Etsy
-        </span>
-        )
-      : (
-        <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">
-          ידני בלבד — לא סונכרן
-        </span>
-        )
-    : null;
-
-  return (
-    <div className="max-w-[1400px] mx-auto space-y-6">
-      {/* Header with Back Button */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => router.push('/orders')}
-          className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>חזרה להזמנות</span>
-        </button>
-
-        {canAssign && (
-          <button
-            onClick={handleSyncOrder}
-            disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 border border-[var(--border-color)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--background)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCcw className={cn('w-4 h-4', syncing && 'animate-spin')} />
-            <span>{syncing ? 'מסנכרן...' : 'סנכרן הזמנה'}</span>
-          </button>
-        )}
-      </div>
-
-      {/* Order Header */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-[var(--text-primary)]">
-              הזמנה {order.order_id}
-            </h1>
-            <div className="flex items-center gap-4 mt-2 text-sm text-[var(--text-muted)]">
-              <span className="flex items-center gap-1">
-                <Package className="w-4 h-4" />
-                מזהה: {order.id}
-              </span>
-              {order.etsy_receipt_id && (
-                <span className="flex items-center gap-1">
-                  קבלת Etsy: {order.etsy_receipt_id}
-                </span>
-              )}
-              <span className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {formatDate(order.created_at)}
-              </span>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-[var(--text-muted)] mb-1">סכום כולל</p>
-            <p className="text-3xl font-bold text-[var(--text-primary)]">
-              {order.total_price === null ? '--' : `${order.currency} ${order.total_price.toFixed(2)}`}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 mt-6">
-          <div>
-            <p className="text-xs text-[var(--text-muted)] mb-1">סטטוס הזמנה</p>
-            <OrderStatus status={order.lifecycle_status || order.status} />
-          </div>
-          <div>
-            <p className="text-xs text-[var(--text-muted)] mb-1">סטטוס תשלום</p>
-            <PaymentStatus status={order.payment_status} />
-          </div>
-
-          {/* Assigned Supplier */}
-          {orderDetail.supplier_name ? (
-            <div>
-              <p className="text-xs text-[var(--text-muted)] mb-1">ספק משויך</p>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-violet-50 text-violet-700">
-                <Truck className="w-3.5 h-3.5" />
-                {orderDetail.supplier_name}
-              </span>
-            </div>
-          ) : order.supplier_user_id ? (
-            <div>
-              <p className="text-xs text-[var(--text-muted)] mb-1">ספק משויך</p>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
-                <User className="w-3.5 h-3.5" />
-                ספק #{order.supplier_user_id}
-              </span>
-            </div>
-          ) : canAssign ? (
-            <div>
-              <p className="text-xs text-[var(--text-muted)] mb-1">ספק</p>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-gray-50 text-gray-500">
-                לא משויך
-              </span>
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Tracking & Fulfillment Section */}
-      {canFulfill && (
-        <DashboardCard>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">מעקב ומשלוח</h2>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-[var(--text-muted)]">
-                סטטוס: {order.fulfillment_status === 'shipped' ? 'נשלח' : order.fulfillment_status === 'unshipped' ? 'טרם נשלח' : (order.fulfillment_status || 'טרם נשלח')}
-              </span>
-              {syncStatus}
-            </div>
-          </div>
-
-          {/* Display existing shipments with source badges */}
-          {order.shipments && order.shipments.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-[var(--text-primary)] mb-3">משלוחים קיימים</h3>
-              <div className="space-y-3">
-                {order.shipments.map((shipment: any, index: number) => (
-                  <div key={index} className="p-3 bg-[var(--background)] border border-[var(--border-color)] rounded-lg">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-xs text-[var(--text-muted)]">מספר מעקב</p>
-                        <p className="text-sm font-medium text-[var(--text-primary)] font-mono">
-                          {shipment.tracking_code}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-[var(--text-muted)]">חברת שליחויות</p>
-                        <p className="text-sm text-[var(--text-primary)]">
-                          {shipment.carrier_name || '—'}
-                        </p>
-                      </div>
-                    </div>
-                    {shipment.tracking_url && (
-                      <div className="mt-2">
-                        <a
-                          href={shipment.tracking_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-[var(--primary)] hover:underline inline-flex items-center gap-1"
-                        >
-                          עקוב אחר החבילה
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
-                      </div>
-                    )}
-                    {shipment.is_delivered && (
-                      <div className="mt-2">
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 text-xs rounded-full">
-                          <CheckCircle className="w-3 h-3" />
-                          נמסר
-                        </span>
-                      </div>
-                    )}
-                    <ShipmentSourceBadge
-                      source={shipment.source}
-                      recordedBy={shipment.recorded_by_name}
-                      recordedByRole={shipment.recorded_by_role}
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 border-t border-[var(--border-color)] pt-4">
-                <h3 className="text-sm font-medium text-[var(--text-primary)] mb-2">הוספת מעקב נוסף</h3>
-              </div>
-            </div>
-          )}
-
-          {/* Assign Supplier — only owner/admin */}
-          {canAssign && suppliers.length > 0 && (
-            <div className="mb-4 flex flex-col md:flex-row gap-3 items-start md:items-end">
-              <div className="flex-1 relative">
-                <label className="block text-sm text-[var(--text-muted)] mb-2">שיוך ספק</label>
-                <button
-                  type="button"
-                  onClick={() => setSupplierDropdownOpen(!supplierDropdownOpen)}
-                  className={cn(
-                    'w-full px-3 py-2 bg-[var(--background)] border border-[var(--border-color)] rounded-lg text-left flex items-center justify-between transition-colors',
-                    selectedSupplierId ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'
-                  )}
-                >
-                  <span>
-                    {selectedSupplierId
-                      ? (() => {
-                          const s = suppliers.find(s => s.user_id === selectedSupplierId);
-                          return s ? `${s.name} (${s.email})` : 'בחר ספק';
-                        })()
-                      : 'בחר ספק'}
-                  </span>
-                  <ChevronDown className={cn('w-4 h-4 transition-transform', supplierDropdownOpen && 'rotate-180')} />
-                </button>
-                {supplierDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setSupplierDropdownOpen(false)} />
-                    <div className="absolute left-0 right-0 mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl shadow-xl z-50 overflow-hidden max-h-60 overflow-y-auto">
-                      <div className="py-1">
-                        {suppliers.map((supplier) => (
-                          <button
-                            key={supplier.user_id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedSupplierId(supplier.user_id);
-                              setSupplierDropdownOpen(false);
-                            }}
-                            className={cn(
-                              'w-full text-left px-4 py-2.5 text-sm transition-colors',
-                              selectedSupplierId === supplier.user_id
-                                ? 'bg-[var(--primary-bg)] text-[var(--primary)] font-medium'
-                                : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
-                            )}
-                          >
-                            {supplier.name} ({supplier.email})
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-              <button
-                onClick={handleAssignSupplier}
-                disabled={!selectedSupplierId || assigningSupplier}
-                className="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:opacity-90 disabled:opacity-50"
-              >
-                {assigningSupplier ? 'משייך...' : 'שייך ספק'}
-              </button>
-            </div>
-          )}
-
-          {/* Tracking form */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-[var(--text-muted)] mb-2">
-                מספר מעקב <span className="text-red-500">*</span>
-              </label>
-              <input
-                ref={trackingInputRef}
-                value={trackingCode}
-                onChange={(e) => { setTrackingCode(e.target.value); if (trackingError) setTrackingError(''); }}
-                className={cn(
-                  'w-full px-3 py-2 bg-[var(--background)] border rounded-lg text-[var(--text-primary)] transition-colors',
-                  trackingError ? 'border-red-500 ring-1 ring-red-500' : 'border-[var(--border-color)]'
-                )}
-                placeholder="הכנס מספר מעקב"
-                required
-              />
-              {trackingError && (
-                <p className="mt-1 text-xs text-red-500">{trackingError}</p>
-              )}
-            </div>
-            <div className="relative">
-              <label className="block text-sm text-[var(--text-muted)] mb-2">
-                חברת שליחויות <span className="text-red-500">*</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setCarrierDropdownOpen(!carrierDropdownOpen)}
-                className={cn(
-                  'w-full px-3 py-2 bg-[var(--background)] border rounded-lg text-left flex items-center justify-between transition-colors',
-                  carrierError ? 'border-red-500 ring-1 ring-red-500' : 'border-[var(--border-color)]',
-                  carrierName ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'
-                )}
-              >
-                <span>{carrierName ? CARRIER_OPTIONS.find(c => c.value === carrierName)?.label || carrierName : 'בחר חברת שליחויות'}</span>
-                <ChevronDown className={cn('w-4 h-4 transition-transform', carrierDropdownOpen && 'rotate-180')} />
-              </button>
-              {carrierError && (
-                <p className="mt-1 text-xs text-red-500">{carrierError}</p>
-              )}
-              {carrierDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setCarrierDropdownOpen(false)} />
-                  <div className="absolute left-0 right-0 mt-1 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl shadow-xl z-50 overflow-hidden max-h-60 overflow-y-auto">
-                    <div className="py-1">
-                      {CARRIER_OPTIONS.map((carrier) => (
-                        <button
-                          key={carrier.value}
-                          type="button"
-                          onClick={() => {
-                            setCarrierName(carrier.value);
-                            setCarrierDropdownOpen(false);
-                            if (carrierError) setCarrierError('');
-                          }}
-                          className={cn(
-                            'w-full text-left px-4 py-2.5 text-sm transition-colors',
-                            carrierName === carrier.value
-                              ? 'bg-[var(--primary-bg)] text-[var(--primary)] font-medium'
-                              : 'text-[var(--text-secondary)] hover:bg-[var(--background)] hover:text-[var(--text-primary)]'
-                          )}
-                        >
-                          {carrier.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Options row */}
-          <div className="mt-4 space-y-3">
-            {/* Manual-only toggle */}
-            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={manualOnly}
-                onChange={(e) => setManualOnly(e.target.checked)}
-                className="w-4 h-4 rounded border-[var(--border-color)] text-[var(--primary)] focus:ring-[var(--primary)]"
-              />
-              <span>שמור ידנית (ללא סנכרון עם Etsy)</span>
-            </label>
-            {manualOnly && (
-              <p className="text-xs text-amber-600 ml-6">
-                המעקב יישמר מקומית בלבד. הוא לא יופיע בהזמנה ב-Etsy.
-              </p>
-            )}
-
-            {/* BCC option — visible when syncing to Etsy */}
-            {!manualOnly && (
-              <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={sendBcc}
-                  onChange={(e) => setSendBcc(e.target.checked)}
-                  className="w-4 h-4 rounded border-[var(--border-color)] text-[var(--primary)] focus:ring-[var(--primary)]"
-                />
-                <span>שלח עדכון מעקב לקונה (העתק לבעל החנות)</span>
-              </label>
-            )}
-          </div>
-
-          <div className="mt-4 flex justify-end">
-            {fulfillResult && (
-              <div
-                className={cn(
-                  'mr-4 flex-1 p-3 rounded-lg text-sm',
-                  fulfillResult.type === 'success'
-                    ? 'bg-green-50 text-green-700 border border-green-200'
-                    : 'bg-red-50 text-red-700 border border-red-200',
-                )}
-              >
-                {fulfillResult.message}
-              </div>
-            )}
-            <button
-              onClick={handleFulfillOrder}
-              disabled={fulfilling}
-              className={cn(
-                'px-5 py-2.5 rounded-lg font-medium transition disabled:opacity-50',
-                manualOnly
-                  ? 'bg-gray-600 text-white hover:bg-gray-700'
-                  : 'bg-[var(--primary)] text-white hover:opacity-90',
-              )}
-            >
-              {fulfilling
-                ? 'שולח...'
-                : manualOnly
-                  ? 'שמור מעקב ידני'
-                  : 'שלח וסנכרן עם Etsy'}
-            </button>
-          </div>
-        </DashboardCard>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Customer & Shipping */}
-        <div className="lg:col-span-1 space-y-6">
-          <DashboardCard title="פרטי לקוח">
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-[var(--primary-bg)] text-[var(--primary)] flex items-center justify-center text-sm font-medium">
-                  {order.buyer_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-[var(--text-primary)]">{order.buyer_name}</p>
-                  <p className="text-sm text-[var(--text-muted)]">{order.buyer_email}</p>
-                </div>
-              </div>
-            </div>
-          </DashboardCard>
-
-          <DashboardCard title="כתובת משלוח">
-            {order.shipping_address ? (
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-[var(--text-muted)] mt-1 flex-shrink-0" />
-                <div className="text-sm text-[var(--text-primary)] space-y-1">
-                  {typeof order.shipping_address === 'object' ? (
-                    <>
-                      {order.shipping_address.name && <p className="font-medium">{order.shipping_address.name}</p>}
-                      {order.shipping_address.address1 && <p>{order.shipping_address.address1}</p>}
-                      {order.shipping_address.address2 && <p>{order.shipping_address.address2}</p>}
-                      {order.shipping_address.city && order.shipping_address.state && (
-                        <p>{order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip}</p>
-                      )}
-                      {order.shipping_address.country && <p>{order.shipping_address.country}</p>}
-                    </>
-                  ) : (
-                    <p className="whitespace-pre-wrap">{JSON.stringify(order.shipping_address, null, 2)}</p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="text-[var(--text-muted)] italic text-sm">אין כתובת משלוח</p>
-            )}
-          </DashboardCard>
-
-          <DashboardCard title="תאריכים">
-            <div className="space-y-3 text-sm">
-              <div>
-                <p className="text-xs text-[var(--text-muted)] mb-1">נוצר בתאריך</p>
-                <p className="text-[var(--text-primary)]">{formatDate(order.created_at)}</p>
-              </div>
-              {order.updated_at && (
-                <div>
-                  <p className="text-xs text-[var(--text-muted)] mb-1">עודכן בתאריך</p>
-                  <p className="text-[var(--text-primary)]">{formatDate(order.updated_at)}</p>
-                </div>
-              )}
-              {order.synced_at && (
-                <div>
-                  <p className="text-xs text-[var(--text-muted)] mb-1">סונכרן לאחרונה</p>
-                  <p className="text-[var(--text-primary)]">{formatDate(order.synced_at)}</p>
-                </div>
-              )}
-            </div>
-          </DashboardCard>
-        </div>
-
-        {/* Right Column - Order Items */}
-        <div className="lg:col-span-2">
-          <DashboardCard title="פריטי הזמנה">
-            {order.items && order.items.length > 0 ? (
-              <div className="space-y-4">
-                {order.items.map((item: any, index: number) => (
-                  <div key={index} className="flex items-start gap-4 p-4 border border-[var(--border-color)] rounded-lg">
-                    {item.image && (
-                      <div className="w-20 h-20 rounded-lg overflow-hidden border border-[var(--border-color)] flex-shrink-0">
-                        <img
-                          src={item.image}
-                          alt={item.title || `Item ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f0f0f0" width="80" height="80"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="12" dy="50%25" dx="50%25" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
-                          }}
-                        />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <h3 className="font-medium text-[var(--text-primary)] mb-1">
-                        {item.title || item.product_name || `Item ${index + 1}`}
-                      </h3>
-                      {item.sku && <p className="text-sm text-[var(--text-muted)] mb-2">מק"ט: {item.sku}</p>}
-                      <div className="flex items-center gap-4 text-sm">
-                        {item.quantity && <span className="text-[var(--text-muted)]">כמות: {item.quantity}</span>}
-                        {item.price && (
-                          <span className="font-medium text-[var(--text-primary)]">
-                            {order.currency} {(parseFloat(item.price) / 100).toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {item.price && item.quantity && (
-                      <div className="text-right">
-                        <p className="text-sm text-[var(--text-muted)] mb-1">סכום ביניים</p>
-                        <p className="font-medium text-[var(--text-primary)]">
-                          {order.currency} {(parseFloat(item.price) / 100 * item.quantity).toFixed(2)}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                <div className="border-t border-[var(--border-color)] pt-4 mt-4">
-                  <div className="flex items-center justify-between text-lg font-bold">
-                    <span className="text-[var(--text-primary)]">סה"כ</span>
-                    <span className="text-[var(--text-primary)]">
-                      {order.total_price != null ? `${order.currency} ${order.total_price.toFixed(2)}` : '--'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)]">
-                <Package className="w-12 h-12 mb-2 opacity-50" />
-                <p>אין פריטים בהזמנה</p>
-                <p className="text-sm mt-1">ייתכן שהנתונים טרם סונכרנו</p>
-              </div>
-            )}
-          </DashboardCard>
-        </div>
-      </div>
+    <div className="flex justify-between py-2.5 border-b border-gray-100 last:border-0">
+      <span className="text-gray-500 text-sm">{label}</span>
+      <span className="text-gray-800 text-sm font-medium">{value}</span>
     </div>
   );
 }
 
 export default function OrderDetailPage() {
+  const router = useRouter();
+  const params = useParams();
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const orderId = Number(params.id);
+
+  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [trackingCode, setTrackingCode] = useState('');
+  const [carrierName, setCarrierName] = useState('');
+  const [fulfilling, setFulfilling] = useState(false);
+
+  const isSupplier = user?.role?.toLowerCase() === 'supplier';
+
+  useEffect(() => {
+    if (!orderId) return;
+    ordersApi.getById(orderId)
+      .then(data => {
+        setOrder(data);
+        setTrackingCode(data.tracking_code || '');
+      })
+      .catch(() => showToast('שגיאה בטעינת ההזמנה', 'error'))
+      .finally(() => setLoading(false));
+  }, [orderId]);
+
+  async function handleFulfill() {
+    if (!trackingCode.trim()) { showToast('הכנס מספר מעקב', 'error'); return; }
+    setFulfilling(true);
+    try {
+      await ordersApi.fulfill(orderId, { tracking_code: trackingCode, carrier_name: carrierName || undefined });
+      showToast('ההזמנה סומנה כנשלחה', 'success');
+      const updated = await ordersApi.getById(orderId);
+      setOrder(updated);
+    } catch {
+      showToast('שגיאה בעדכון ההזמנה', 'error');
+    } finally {
+      setFulfilling(false);
+    }
+  }
+
+  async function handleSaveTracking() {
+    if (!trackingCode.trim()) { showToast('הכנס מספר מעקב', 'error'); return; }
+    setFulfilling(true);
+    try {
+      await ordersApi.recordTracking(orderId, { tracking_code: trackingCode, carrier_name: carrierName || undefined });
+      showToast('מספר מעקב עודכן', 'success');
+    } catch {
+      showToast('שגיאה בעדכון', 'error');
+    } finally {
+      setFulfilling(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-[#006d43]" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!order) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-20 text-gray-400">ההזמנה לא נמצאה</div>
+      </DashboardLayout>
+    );
+  }
+
+  const addr = order.shipping_address;
+  const addressStr = addr
+    ? [addr.first_line, addr.city, addr.state, addr.zip, addr.country_iso].filter(Boolean).join(', ')
+    : null;
+  const isShipped = ['in_transit', 'completed'].includes(normalizeOrderStatus(order.lifecycle_status || order.status));
+
   return (
     <DashboardLayout>
-      <OrderDetailContent />
+      <div className="max-w-4xl mx-auto px-6 py-8" dir="rtl">
+
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <button
+            onClick={() => router.push('/orders')}
+            className="flex items-center gap-2 text-gray-500 hover:text-gray-800 transition-colors text-sm"
+          >
+            <ArrowRight className="w-4 h-4" />
+            חזרה להזמנות
+          </button>
+          <div className="h-4 w-px bg-gray-200" />
+          <h1 className="text-xl font-bold text-gray-800">
+            הזמנה #{order.order_id || order.etsy_receipt_id || order.id}
+          </h1>
+          <StatusBadge status={order.lifecycle_status || order.status} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Main — items + address + shipping */}
+          <div className="lg:col-span-2 space-y-5">
+
+            {/* Items */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
+              <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Package className="w-4 h-4 text-[#006d43]" />
+                פריטים
+              </h2>
+              {order.items && order.items.length > 0 ? (
+                <div className="space-y-3">
+                  {order.items.map((item: any, i: number) => (
+                    <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                      {item.image_url && (
+                        <img
+                          src={item.image_url}
+                          alt={item.title}
+                          className="w-14 h-14 object-cover rounded-lg flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-800 text-sm leading-tight">
+                          {item.title || item.listing_title}
+                        </p>
+                        {item.sku && <p className="text-xs text-gray-400 mt-0.5">SKU: {item.sku}</p>}
+                        {item.variations?.length > 0 && (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {item.variations.map((v: any) => `${v.property_name}: ${v.value}`).join(' | ')}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-left flex-shrink-0">
+                        <p className="text-sm font-bold text-gray-800">×{item.quantity}</p>
+                        {!isSupplier && item.price != null && (
+                          <p className="text-xs text-gray-500">
+                            {(item.price / 100).toFixed(2)} {order.currency}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-400 text-sm">אין פריטים</p>
+              )}
+            </div>
+
+            {/* Address */}
+            {addressStr && (
+              <div className="bg-white rounded-2xl p-6 shadow-sm">
+                <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-[#006d43]" />
+                  כתובת משלוח
+                </h2>
+                <p className="text-sm text-gray-700 leading-relaxed">{addressStr}</p>
+              </div>
+            )}
+
+            {/* Tracking / Fulfill */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
+              <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Truck className="w-4 h-4 text-[#006d43]" />
+                משלוח ומעקב
+              </h2>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">מספר מעקב</label>
+                  <input
+                    type="text"
+                    value={trackingCode}
+                    onChange={e => setTrackingCode(e.target.value)}
+                    placeholder="לדוג׳: 1Z999AA10123456784"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#006d43] transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">חברת שליחויות</label>
+                  <input
+                    type="text"
+                    value={carrierName}
+                    onChange={e => setCarrierName(e.target.value)}
+                    placeholder="לדוג׳: DHL, FedEx, Israel Post"
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#006d43] transition-colors"
+                  />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  {!isShipped && (
+                    <button
+                      onClick={handleFulfill}
+                      disabled={fulfilling}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-[#006d43] text-white rounded-xl text-sm font-semibold hover:bg-[#005a38] disabled:opacity-50 transition-colors"
+                    >
+                      {fulfilling ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                      סמן כנשלח
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSaveTracking}
+                    disabled={fulfilling}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                  >
+                    <Save className="w-4 h-4" />
+                    שמור מעקב
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-5">
+
+            {/* Order details */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
+              <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Hash className="w-4 h-4 text-[#006d43]" />
+                פרטי הזמנה
+              </h2>
+              <InfoRow label="מספר הזמנה" value={order.order_id || order.etsy_receipt_id || String(order.id)} />
+              <InfoRow label="תאריך" value={new Date(order.created_at).toLocaleDateString('he-IL')} />
+              {order.tracking_code && <InfoRow label="מעקב" value={order.tracking_code} />}
+              <div className="mt-3">
+                <PaymentBadge status={order.payment_status} />
+              </div>
+            </div>
+
+            {/* Buyer */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
+              <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <User className="w-4 h-4 text-[#006d43]" />
+                קונה
+              </h2>
+              <InfoRow label="שם" value={order.buyer_name} />
+              {!isSupplier && <InfoRow label="אימייל" value={order.buyer_email} />}
+            </div>
+
+            {/* Total */}
+            {!isSupplier && order.total_price != null && (
+              <div className="bg-white rounded-2xl p-6 shadow-sm">
+                <h2 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-[#006d43]" />
+                  סכום
+                </h2>
+                <p className="text-2xl font-black text-[#006d43]">
+                  {order.total_price.toFixed(2)} {order.currency}
+                </p>
+              </div>
+            )}
+
+            {/* Etsy link */}
+            {order.etsy_receipt_id && (
+              <a
+                href={`https://www.etsy.com/your/orders/${order.etsy_receipt_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 bg-[#f56400] text-white rounded-2xl font-semibold text-sm hover:bg-[#e05a00] transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                פתח ב-Etsy
+              </a>
+            )}
+          </div>
+
+        </div>
+      </div>
     </DashboardLayout>
   );
 }
