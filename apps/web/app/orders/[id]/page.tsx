@@ -17,7 +17,6 @@ import {
   Hash,
   CheckCircle2,
   Loader2,
-  ExternalLink,
   Save,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -307,18 +306,6 @@ export default function OrderDetailPage() {
               </div>
             )}
 
-            {/* Etsy link */}
-            {order.etsy_receipt_id && (
-              <a
-                href={`https://www.etsy.com/your/orders/${order.etsy_receipt_id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-3 bg-[#f56400] text-white rounded-2xl font-semibold text-sm hover:bg-[#e05a00] transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-                פתח ב-Etsy
-              </a>
-            )}
           </div>
 
         </div>
