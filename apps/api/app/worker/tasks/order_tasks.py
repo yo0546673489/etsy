@@ -4,6 +4,7 @@ Handles syncing orders from Etsy to local database
 """
 import asyncio
 import logging
+import time
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
@@ -70,7 +71,12 @@ def sync_orders(
         # Initialize Etsy client
         etsy_client = EtsyClient(db)
 
-        for shop in shops:
+        for i, shop in enumerate(shops):
+            # Stagger requests: wait 2s between shops to avoid Etsy rate limits.
+            # 16 shops × 2s = ~32s total — well within the 2-min task interval.
+            if i > 0:
+                time.sleep(2)
+
             try:
                 shop_result = asyncio.run(
                     _sync_shop_orders(
