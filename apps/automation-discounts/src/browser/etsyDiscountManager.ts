@@ -44,12 +44,64 @@ export class EtsyDiscountManager {
   }
 
   /**
+   * גלישה אנושית לפני פעולה — מבקר ב-2-4 דפים אקראיים בניהול החנות
+   */
+  private async humanPreBrowse(): Promise<void> {
+    const pages = [
+      'https://www.etsy.com/your/shops/me/dashboard',
+      'https://www.etsy.com/your/shops/me/orders',
+      'https://www.etsy.com/your/shops/me/listings',
+      'https://www.etsy.com/your/shops/me/stats',
+      'https://www.etsy.com/your/shops/me/finances',
+      'https://www.etsy.com/your/shops/me/messages',
+    ];
+
+    // בחר 2-3 דפים אקראיים שונים
+    const shuffled = pages.sort(() => Math.random() - 0.5);
+    const count = randomBetween(2, 3);
+    const toVisit = shuffled.slice(0, count);
+
+    logger.info(`[pre-browse] מבקר ב-${count} דפים לפני הפעולה`);
+
+    for (const url of toVisit) {
+      try {
+        await this.human.humanNavigate(url);
+        // קרא את הדף כמו בן אדם — זמן קריאה אקראי
+        await randomDelay(4000, 12000);
+        // גלול קצת כאילו עיינת בתוכן
+        const scrollCount = randomBetween(1, 3);
+        for (let i = 0; i < scrollCount; i++) {
+          await this.human.humanScroll('down', randomBetween(200, 500));
+          await randomDelay(1000, 3000);
+        }
+        // לפעמים חזור למעלה
+        if (Math.random() < 0.4) {
+          await this.human.humanScroll('up', randomBetween(100, 300));
+          await randomDelay(800, 2000);
+        }
+        // תנועת עכבר אקראית
+        await this.human.randomMouseMovement();
+        logger.info(`[pre-browse] ביקר ב: ${url}`);
+      } catch (e) {
+        logger.warn(`[pre-browse] דף נכשל, ממשיך: ${url}`);
+      }
+    }
+
+    // השהייה לפני הפעולה האמיתית — "חשיבה"
+    await randomDelay(3000, 8000);
+    logger.info('[pre-browse] סיים גלישה, ממשיך לפעולה');
+  }
+
+  /**
    * יצירת מבצע הנחה חדש
    * URL: https://www.etsy.com/your/shops/me/sales-discounts/step/createSale
    */
   async createSale(config: SaleConfig): Promise<boolean> {
     try {
       logger.info(`Creating sale: ${config.saleName} (${config.discountPercent}%)`);
+
+      // שלב 0: גלישה אנושית לפני הפעולה
+      await this.humanPreBrowse();
 
       // שלב 1: ניווט לדף יצירת מבצע (דלג אם כבר שם)
       const pageUrlBefore = this.page.url();
@@ -636,6 +688,9 @@ export class EtsyDiscountManager {
   async endSale(saleName: string): Promise<boolean> {
     try {
       logger.info(`Ending sale: ${saleName}`);
+
+      // גלישה אנושית לפני הפעולה
+      await this.humanPreBrowse();
 
       // ניווט לדף המבצעים
       await this.page.goto('https://www.etsy.com/your/shops/me/sales-discounts', {
