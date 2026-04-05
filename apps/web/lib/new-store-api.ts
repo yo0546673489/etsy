@@ -1,6 +1,6 @@
 import { StartResearchParams, ResearchJob } from '@/types/new-store'
 
-const WINDOWS_SERVER = process.env.WINDOWS_SERVER_URL || 'http://45.143.167.147:8001'
+const WINDOWS_SERVER = process.env.WINDOWS_SERVER_URL || 'http://194.36.89.175:8001'
 const API_KEY = process.env.INTERNAL_API_KEY!
 
 export async function startResearch(params: StartResearchParams): Promise<string> {

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { WSEvent, Product, SelectedNiche } from '@/types/new-store'
 
-const WINDOWS_SERVER_WS = process.env.NEXT_PUBLIC_WINDOWS_SERVER_WS || 'ws://45.143.167.147:8001'
+const WINDOWS_SERVER_WS = process.env.NEXT_PUBLIC_WINDOWS_SERVER_WS || 'ws://194.36.89.175:8001'
 const API_KEY = process.env.NEXT_PUBLIC_INTERNAL_KEY || ''
 
 interface UseResearchWSReturn {
