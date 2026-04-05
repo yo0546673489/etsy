@@ -63,7 +63,7 @@
 - ✅ IMAP Listener — מאזין
 - ✅ 86/106 שיחות עם שמות אמיתיים (Jessica Comin, Danielle, Kim, Naomi, Jennifer, Greg...)
 - ✅ צבעי אווטארים מגוונים לפי ID שיחה
-- ✅ Docker rebuilt — `https://yaroncohen.cc/messages` 200 OK
+- ✅ Docker rebuilt — `https://profix-ai.com/messages` 200 OK
 
 ---
 
@@ -75,7 +75,7 @@
 | DB Messages | `postgresql://postgres:postgres_dev_password@185.241.4.225:5433/etsy_messages` |
 | DB Platform | `postgresql://postgres:postgres_dev_password@185.241.4.225:5433/etsy_platform` |
 | IMAP | `imap.gmail.com` / `a05832261551@gmail.com` / `ovmp vyok huwe qjkz` |
-| Automation API | `http://localhost:3500` → `yaroncohen.cc/messages-api/` |
+| Automation API | `http://localhost:3500` → `profix-ai.com/messages-api/` |
 | PM2 process | `C:\etsy\הודעות\dist\index.js` — `etsy-messages` |
 
 ---

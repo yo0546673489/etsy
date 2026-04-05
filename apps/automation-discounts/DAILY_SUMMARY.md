@@ -6,7 +6,7 @@
 
 ## 🎯 מה המערכת עושה
 
-המשתמש נכנס לאתר `yaroncohen.cc/discounts` → מגדיר הנחה → **האוטומציה יוצרת מבצע (Sale) ב-Etsy אוטומטית דרך AdsPower**.
+המשתמש נכנס לאתר `profix-ai.com/discounts` → מגדיר הנחה → **האוטומציה יוצרת מבצע (Sale) ב-Etsy אוטומטית דרך AdsPower**.
 
 - אין תאריך התחלה → מתחיל מחר (כי Etsy UK timezone)
 - נמחק / כובה → מסיים את המבצע ב-Etsy מיד
@@ -68,7 +68,7 @@ start_date, end_date, is_active
 ## 🔄 זרימת העבודה
 
 ```
-yaroncohen.cc/discounts
+profix-ai.com/discounts
         ↓ (Python FastAPI)
   etsy_platform.discount_tasks (status='pending')
         ↓ (כל 5 דקות)

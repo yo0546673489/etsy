@@ -85,7 +85,7 @@ conn.on('ready', async () => {
 REDIS_URL=redis://redis:6379
 API_PORT=3500
 API_HOST=0.0.0.0
-FRONTEND_URL=https://yaroncohen.cc
+FRONTEND_URL=https://profix-ai.com
 IMAP_HOST=imap.gmail.com
 IMAP_PORT=993
 IMAP_USER=a05832261551@gmail.com
@@ -152,7 +152,7 @@ DOCKEREOF`;
     // Also fix NEXT_PUBLIC_API_URL
     console.log('  Fixing NEXT_PUBLIC_API_URL...');
     await runCmd(conn,
-      `sed -i 's|NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=https://yaroncohen.cc|' /opt/profitly/.env`
+      `sed -i 's|NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=https://profix-ai.com|' /opt/profitly/.env`
     );
     console.log('  Done');
 
@@ -184,7 +184,7 @@ DOCKEREOF`;
 
     console.log('\n✅ Setup complete!');
     console.log('Messages API: http://185.241.4.225:3500/api/health');
-    console.log('Website: https://yaroncohen.cc/messages');
+    console.log('Website: https://profix-ai.com/messages');
 
   } catch(e) {
     console.error('❌ Error:', e);

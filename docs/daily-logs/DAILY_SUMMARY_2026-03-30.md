@@ -16,28 +16,28 @@
 
 ### 🔒 SSL Let's Encrypt
 - הותקן certbot: `apt install certbot python3-certbot-nginx -y`
-- ניסיון ראשון נכשל — `www.yaroncohen.cc` עדיין הצביע ל-`2.57.91.91` (DNS לא התפשט)
-- הצלחנו עם domain בלבד: `certbot --nginx -d yaroncohen.cc`
+- ניסיון ראשון נכשל — `www.profix-ai.com` עדיין הצביע ל-`2.57.91.91` (DNS לא התפשט)
+- הצלחנו עם domain בלבד: `certbot --nginx -d profix-ai.com`
 - תעודה תקפה עד **27/06/2026**, מתחדשת אוטומטית
 
 ### 🔧 עדכון .env בשרת
 תוקנו 4 משתנים ב-`/opt/profitly/.env`:
 ```
-NEXTAUTH_URL: http://185.241.4.225:3000 → https://yaroncohen.cc
-ETSY_REDIRECT_URI: http://185.241.4.225:3000/... → https://yaroncohen.cc/...
-GOOGLE_REDIRECT_URI: http://185.241.4.225:3000/... → https://yaroncohen.cc/...
-FRONTEND_URL: http://185.241.4.225:3000 → https://yaroncohen.cc
+NEXTAUTH_URL: http://185.241.4.225:3000 → https://profix-ai.com
+ETSY_REDIRECT_URI: http://185.241.4.225:3000/... → https://profix-ai.com/...
+GOOGLE_REDIRECT_URI: http://185.241.4.225:3000/... → https://profix-ai.com/...
+FRONTEND_URL: http://185.241.4.225:3000 → https://profix-ai.com
 ```
 (FRONTEND_URL גורם לכפתור "חבר חנות חדשה" לייצר URL נכון)
 
 ### 🔑 עדכון Google Cloud Console
 - נפתח: `console.cloud.google.com` → APIs & Services → Credentials → **Profitly Web**
-- הוסף ל-**Authorized JavaScript origins**: `https://yaroncohen.cc`
-- הוסף ל-**Authorized redirect URIs**: `https://yaroncohen.cc/api/oauth/google/callback`
+- הוסף ל-**Authorized JavaScript origins**: `https://profix-ai.com`
+- הוסף ל-**Authorized redirect URIs**: `https://profix-ai.com/api/oauth/google/callback`
 
 ### 🏪 עדכון Etsy Developer Console
 - נפתח: `etsy.com/developers/edit/[app-id]/callbacks`
-- הוסף: `https://yaroncohen.cc/oauth/etsy/callback`
+- הוסף: `https://profix-ai.com/oauth/etsy/callback`
 
 ### 🎨 תיקוני RTL — Dropdowns
 **בעיה**: כל ה-dropdown menus (notifications, profile, shop selector, language) נפתחו בצד שמאל במקום ימין בממשק העברי (RTL).
@@ -68,7 +68,7 @@ FRONTEND_URL: http://185.241.4.225:3000 → https://yaroncohen.cc
 
 | רכיב | כתובת |
 |------|--------|
-| אתר ראשי | https://yaroncohen.cc |
+| אתר ראשי | https://profix-ai.com |
 | API | http://185.241.4.225:8080 |
 | IP שרת | 185.241.4.225 |
 | SSH | `ssh root@185.241.4.225` סיסמה: `aA@05466734890` |
@@ -80,11 +80,11 @@ FRONTEND_URL: http://185.241.4.225:3000 → https://yaroncohen.cc
 ## ⏳ מה נשאר לעשות:
 
 ### דחוף
-- [ ] **חיבור חנויות** — היכנס ל-`https://yaroncohen.cc/settings` → לחץ "חבר חנות חדשה" → חבר FigurineeHaven + CoreBags דרך Etsy OAuth
+- [ ] **חיבור חנויות** — היכנס ל-`https://profix-ai.com/settings` → לחץ "חבר חנות חדשה" → חבר FigurineeHaven + CoreBags דרך Etsy OAuth
 - [ ] **בדיקת Google OAuth** — לבדוק שכניסה עם Google עובדת (לפעמים לוקח 5 דקות אחרי שמירה ב-Google Console)
 
 ### פחות דחוף
-- [ ] **SSL ל-www** — אחרי שה-DNS מתפשט: `certbot --nginx -d yaroncohen.cc -d www.yaroncohen.cc`
+- [ ] **SSL ל-www** — אחרי שה-DNS מתפשט: `certbot --nginx -d profix-ai.com -d www.profix-ai.com`
 - [ ] **www redirect** — הגדרת nginx לעשות redirect מ-www ל-apex
 - [ ] **מיגרציה DB** — להעביר נתונים מהדאטהבייס המקומי לשרת (אם רוצים)
 

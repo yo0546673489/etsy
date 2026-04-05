@@ -18,7 +18,7 @@
 ## שרת ומחשב:
 - **Windows VPS IP:** `185.241.4.225`
 - **PM2 Process:** `etsy-messages` (רץ מ-`C:\etsy\הודעות\dist\index.js`)
-- **Fastify API Port:** `3500` (חשוף דרך nginx כ-`yaroncohen.cc/messages-api/`)
+- **Fastify API Port:** `3500` (חשוף דרך nginx כ-`profix-ai.com/messages-api/`)
 - **DB:** PostgreSQL בשרת הלינוקס `185.241.4.225:5433` — DB: `etsy_messages`
 
 ---

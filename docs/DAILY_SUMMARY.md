@@ -33,7 +33,7 @@
 - **מפתח חדש:** `2cervnvhc9e9kkrhyenwu09u` / Secret: `bme4ns6soo`
 - עודכן ישירות ב-`/opt/profitly/.env` בשרת
 - הופעל מחדש etsy-api container
-- נוספה כתובת Callback ב-Etsy Developers: `https://yaroncohen.cc/oauth/etsy/callback`
+- נוספה כתובת Callback ב-Etsy Developers: `https://profix-ai.com/oauth/etsy/callback`
 - **בדיקה:** Ping ל-Etsy API מחזיר `{"application_id":1476950078347}` ✅
 
 ### 5. בדיקת מגבלות API
@@ -54,7 +54,7 @@
 
 ## חיבורים ושרתים:
 - **שרת:** `185.241.4.225` (Linux VPS)
-- **אתר:** `https://yaroncohen.cc`
+- **אתר:** `https://profix-ai.com`
 - **SSH Key:** `C:/Users/yossf/.ssh/profitly_server`
 - **Project dir:** `/opt/profitly/`
 - **Docker:** `docker compose -p etsyauto`
@@ -65,7 +65,7 @@
 ---
 
 ## תקלות שהיו:
-1. **"The requested redirect URL is not permitted"** — Callback URL לא היה רשום בEtsy Developers. נפתר על ידי הוספת `https://yaroncohen.cc/oauth/etsy/callback`
+1. **"The requested redirect URL is not permitted"** — Callback URL לא היה רשום בEtsy Developers. נפתר על ידי הוספת `https://profix-ai.com/oauth/etsy/callback`
 2. **עמודת צפיות הציגה `—`** — dict ידני ב-API לא כלל `views`. נפתר.
 
 ---
@@ -73,7 +73,7 @@
 ## מה נשאר לעשות:
 - [ ] לבדוק שחיבור חנות חדשה עובד מקצה לקצה עם המפתח החדש
 - [ ] חיבור שרת Windows (אוטומציות) — חסר IP של השרת
-- [ ] SSL ל-`www.yaroncohen.cc`
+- [ ] SSL ל-`www.profix-ai.com`
 - [ ] Analytics dashboard עם נתונים אמיתיים
 - [ ] סנכרון לדג'ר אוטומטי כל שעה (Celery Beat)
 
