@@ -19,7 +19,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
-const STATUS_API = 'https://yaroncohen.cc/messages-api/api/status';
+const STATUS_API = 'https://profix-ai.com/messages-api/api/status';
 const REFRESH_INTERVAL = 30000; // 30 seconds
 
 interface StoreInfo {
