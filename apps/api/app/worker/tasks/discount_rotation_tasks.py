@@ -14,6 +14,55 @@ from app.models.discounts import DiscountRule, DiscountTask
 logger = logging.getLogger(__name__)
 
 
+@celery_app.task(name="app.worker.tasks.discount_rotation_tasks.sync_completed_discount_tasks")
+def sync_completed_discount_tasks():
+    """
+    רץ כל 2 דקות. מחפש DiscountTasks שהושלמו (status='completed')
+    ומעדכן את ה-DiscountRule המתאים:
+    - status='active' (מאושר ב-Etsy)
+    - discount_value = הערך שבוצע בפועל
+    """
+    db = SessionLocal()
+    try:
+        from sqlalchemy import and_
+
+        # מצא tasks שהושלמו אך ה-rule עדיין ב-queued
+        completed_tasks = (
+            db.query(DiscountTask)
+            .join(DiscountRule, DiscountTask.rule_id == DiscountRule.id)
+            .filter(
+                DiscountTask.status == 'completed',
+                DiscountTask.action == 'apply_discount',
+                DiscountRule.status == 'queued',
+            )
+            .all()
+        )
+
+        updated = 0
+        for task in completed_tasks:
+            rule = db.query(DiscountRule).filter(DiscountRule.id == task.rule_id).first()
+            if not rule:
+                continue
+            rule.status = 'active'
+            if task.discount_value is not None:
+                rule.discount_value = task.discount_value
+            updated += 1
+            logger.info(f"[sync-tasks] rule={rule.id} shop={rule.shop_id} confirmed active @ {rule.discount_value}%")
+
+        if updated:
+            db.commit()
+            logger.info(f"[sync-tasks] עודכנו {updated} כללים ל-active")
+
+        return {"updated": updated}
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"[sync-tasks] שגיאה: {e}", exc_info=True)
+        raise
+    finally:
+        db.close()
+
+
 @celery_app.task(name="app.worker.tasks.discount_rotation_tasks.rotate_auto_discounts")
 def rotate_auto_discounts():
     """

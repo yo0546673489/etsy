@@ -19,6 +19,7 @@ function cn(...cls: (string | boolean | undefined | null)[]) {
 
 const statusConfig: Record<string, { tKey: string; bg: string; text: string; dot: string }> = {
   active:    { tKey: 'discounts.status.active',    bg: 'bg-green-100',  text: 'text-green-700',  dot: 'bg-green-500' },
+  queued:    { tKey: 'discounts.status.queued',    bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-400' },
   paused:    { tKey: 'discounts.status.paused',    bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
   draft:     { tKey: 'discounts.status.draft',     bg: 'bg-gray-100',   text: 'text-gray-600',   dot: 'bg-gray-400' },
   completed: { tKey: 'discounts.status.completed', bg: 'bg-blue-100',   text: 'text-blue-700',   dot: 'bg-blue-500' },
@@ -897,7 +898,8 @@ export default function DiscountsPage() {
       targets.map((shop, index) => {
         const ruleData = {
           ...data,
-          discount_value: isMulti ? varyDiscount(baseDiscount) : baseDiscount,
+          // במצב אוטומטי — לא משנים את ה-% (הסיבוב יטפל בזה), רק במצב ידני מפזרים
+          discount_value: (isMulti && !data.auto_rotate) ? varyDiscount(baseDiscount) : baseDiscount,
           etsy_sale_name: isMulti ? pickSaleName(data.etsy_sale_name ?? undefined) : data.etsy_sale_name,
           ...(isMulti ? { start_offset_minutes: offsets[index] } : {}),
         };

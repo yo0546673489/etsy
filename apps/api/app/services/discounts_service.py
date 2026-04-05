@@ -33,6 +33,8 @@ class DiscountsService:
             self._generate_tasks(db, rule)
         elif rule.is_active:
             # פעיל — מתחיל מיד או עם דחייה (לפיזור באלק)
+            # סטטוס "queued" — ממתין לביצוע ב-Etsy, יעודכן ל-"active" אחרי השלמת ה-task
+            rule.status = 'queued'
             self._create_immediate_task(db, rule, 'apply_discount', delay_minutes=start_offset_minutes)
 
         db.commit()
@@ -61,7 +63,8 @@ class DiscountsService:
         if rule.is_scheduled and rule.schedule_type:
             self._generate_tasks(db, rule)
         elif rule.is_active:
-            # פעיל בלי תאריך — מתחיל מיד
+            # פעיל — ממתין לביצוע ב-Etsy
+            rule.status = 'queued'
             self._create_immediate_task(db, rule, 'apply_discount')
         elif was_active and not rule.is_active:
             # כובה — מסיים מיד

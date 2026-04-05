@@ -96,4 +96,8 @@ celery_app.conf.beat_schedule = {
         "task": "app.worker.tasks.discount_rotation_tasks.rotate_auto_discounts",
         "schedule": 3600.0,  # כל שעה — בודק אם צריך לסובב הנחות
     },
+    "sync-completed-discount-tasks": {
+        "task": "app.worker.tasks.discount_rotation_tasks.sync_completed_discount_tasks",
+        "schedule": 120.0,  # כל 2 דקות — מעדכן rules שה-task שלהם הושלם
+    },
 }
