@@ -30,7 +30,7 @@ ws_manager = WebSocketManager()
 # CORS — רק שרת Linux מורשה
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://76.13.137.252", "http://185.241.4.225", "https://yaroncohen.cc", "http://localhost:3000"],
+    allow_origins=["http://76.13.137.252", "http://185.241.4.225", "https://profix-ai.com", "http://localhost:3000"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
