@@ -695,3 +695,37 @@ docker compose -p etsyauto up -d --build api
 ---
 
 **עודכן**: 2026-03-30 | **הבא**: Billing/Payment balance sync, Analytics מלא
+
+
+---
+
+## ⛔ כללי עבודה למודול automation-messages — חובה לקרוא בכל צ'אט חדש
+
+### אסור בהחלט לגעת בשרת ישירות!
+מודול זה **לא מעלה שום דבר ישירות לשרת**. לא דרך SSH, לא דרך SCP, לא דרך API, לא בשום צורה.
+רק המחשב הראשי (מחשב 1) מורשה לעלות לשרת. זה כלל ברזל שאסור לשבור.
+
+### מה עושים כשצריך לעלות משהו לשרת:
+
+1. מסיימים את העבודה על הקוד.
+2. כותבים קובץ `DEPLOY_REQUEST.md` בתוך `apps/automation-messages/` עם:
+   - מה השתנה (רשימת קבצים ותיאור)
+   - מה צריך להתקין (packages חדשים)
+   - מה צריך להריץ על השרת (פקודות מדויקות)
+   - איך לבדוק שזה עובד
+3. עושים commit + push ל-GitHub.
+4. נותנים למשתמש את ההודעה הבאה להעביר למחשב הראשי:
+
+```
+✅ יש עדכון למודול automation-messages.
+📦 השינויים עלו ל-GitHub.
+📋 כל ההסבר נמצא בקובץ: apps/automation-messages/DEPLOY_REQUEST.md
+🚀 תעשה git pull ותעלה לשרת לפי ההוראות בקובץ.
+```
+
+### כללים נוספים:
+- עבוד רק בתוך `apps/automation-messages/` — אל תיגע בתיקיות אחרות.
+- לפני כל עבודה: `git pull origin main`
+- אחרי כל עבודה: `git add . && git commit -m "תיאור" && git push origin main`
+- אל תעלה קבצי `.env` או מפתחות ל-GitHub.
+- `dist/` לא ב-git — build + העתקה ידנית ל-Windows VPS.
