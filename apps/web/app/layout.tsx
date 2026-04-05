@@ -7,6 +7,10 @@ const fontClass = 'font-sans';
 export const metadata: Metadata = {
   title: 'Profix Platform',
   description: 'Smart automation exclusively for Etsy sellers - Manage listings, sync orders, and grow your shop',
+  icons: {
+    icon: '/logo-icon.png',
+    apple: '/logo-icon.png',
+  },
 };
 
 export default function RootLayout({
