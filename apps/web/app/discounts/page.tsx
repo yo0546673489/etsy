@@ -835,25 +835,17 @@ export default function DiscountsPage() {
     const targets = actionableShops;
     if (!targets.length) return;
 
-    // פיזור זמנים אקראי: כל חנות מקבלת שעה אקראית שונה במהלך היום
-    // יוצרים N נקודות זמן אקראיות (בדקות) ומסדרים אותן
+    // פיזור זמנים: מינימום 30 דקות בין כל חנות + תוספת אקראית 0-30 דקות
+    // חנות 0 = עכשיו, חנות 1 = +30-60 דקות, חנות 2 = +60-120 דקות וכו'
     const generateRandomOffsets = (count: number): number[] => {
       if (count <= 1) return [0];
-      // פיזור על פני 16 שעות (960 דקות) עם מינימום 20 דקות בין חנויות
-      const offsets: number[] = [];
-      const used = new Set<number>();
-      for (let i = 0; i < count; i++) {
-        let offset: number;
-        let attempts = 0;
-        do {
-          // כל חנות מקבלת slot אקראי בין i*40 ל-(i+1)*40 + jitter
-          offset = Math.floor(i * 40 + Math.random() * 40);
-          attempts++;
-        } while (used.has(offset) && attempts < 20);
-        used.add(offset);
-        offsets.push(offset);
+      const offsets: number[] = [0];
+      for (let i = 1; i < count; i++) {
+        const prev = offsets[i - 1];
+        const gap = 30 + Math.floor(Math.random() * 31); // 30–60 דקות אקראי
+        offsets.push(prev + gap);
       }
-      return offsets.sort((a, b) => a - b);
+      return offsets;
     };
 
     // וריאציה קלה באחוז ההנחה — הרוב שונים קצת, מעטים זהים

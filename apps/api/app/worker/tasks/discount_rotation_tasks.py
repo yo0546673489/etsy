@@ -80,6 +80,8 @@ def rotate_auto_discounts():
         ).all()
 
         rotated = 0
+        shop_index = 0  # מונה לחישוב הדחייה המצטברת
+
         for rule in rules:
             if not rule.auto_min_percent or not rule.auto_max_percent or not rule.auto_interval_days:
                 continue
@@ -97,6 +99,15 @@ def rotate_auto_discounts():
             new_percent = round(random.uniform(rule.auto_min_percent, rule.auto_max_percent))
             new_percent = max(int(rule.auto_min_percent), min(int(rule.auto_max_percent), new_percent))
 
+            # פיזור זמנים: מינימום 30 דקות + אקראי 0-30 דקות בין כל חנות
+            # חנות 0 = עכשיו, חנות 1 = +30-60 דקות, חנות 2 = +60-120 דקות וכו'
+            if shop_index == 0:
+                delay_minutes = 0
+            else:
+                delay_minutes = shop_index * 30 + random.randint(0, 30)
+
+            scheduled_for = now + timedelta(minutes=delay_minutes)
+
             # צור task לעדכון ב-Etsy
             task = DiscountTask(
                 rule_id=rule.id,
@@ -105,7 +116,7 @@ def rotate_auto_discounts():
                 discount_value=float(new_percent),
                 scope=rule.scope,
                 listing_ids=rule.listing_ids,
-                scheduled_for=now,
+                scheduled_for=scheduled_for,
                 status='pending',
             )
             db.add(task)
@@ -114,8 +125,9 @@ def rotate_auto_discounts():
             rule.discount_value = float(new_percent)
             rule.last_rotated_at = now
 
+            shop_index += 1
             rotated += 1
-            logger.info(f"[auto-rotate] rule={rule.id} shop={rule.shop_id} new_percent={new_percent}%")
+            logger.info(f"[auto-rotate] rule={rule.id} shop={rule.shop_id} new_percent={new_percent}% delay={delay_minutes}min")
 
         db.commit()
         logger.info(f"[auto-rotate] סיים — סובבו {rotated} כללים מתוך {len(rules)}")
