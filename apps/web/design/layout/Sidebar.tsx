@@ -142,7 +142,10 @@ export function Sidebar() {
       {/* App Logo */}
       <div className="h-16 flex items-center px-6 border-b border-white/10">
         <Link href="/" className="flex items-center gap-2">
-          <img src="/logo.png" alt="Profix" className="h-9 w-auto" />
+          <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
+            <img src="/logo-icon.png" alt="Profix" className="w-full h-full object-contain" />
+          </div>
+          <span className="text-white font-bold text-lg tracking-wide">Profix</span>
         </Link>
       </div>
 
