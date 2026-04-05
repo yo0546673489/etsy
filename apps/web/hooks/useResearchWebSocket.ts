@@ -3,8 +3,22 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { WSEvent, Product, SelectedNiche } from '@/types/new-store'
 
-const WINDOWS_SERVER_WS = process.env.NEXT_PUBLIC_WINDOWS_SERVER_WS || 'ws://194.36.89.175:8001'
-const API_KEY = process.env.NEXT_PUBLIC_INTERNAL_KEY || ''
+const API_KEY = process.env.NEXT_PUBLIC_INTERNAL_KEY || '16b72da1ef604967ac041896b58d53ec'
+
+/** בונה WebSocket URL בהתאם לפרוטוקול הנוכחי.
+ *  HTTPS → wss://profix-ai.com/research/... (דרך nginx proxy)
+ *  HTTP  → ws://194.36.89.175:8001/research/... (dev ישיר)
+ */
+function buildWsUrl(jobId: string): string {
+  if (typeof window === 'undefined') return ''
+  if (window.location.protocol === 'https:') {
+    // Proxy through nginx (nginx → Venus)
+    return `wss://${window.location.host}/research/${jobId}/ws?key=${API_KEY}`
+  }
+  // Development: direct connection to Venus
+  const base = process.env.NEXT_PUBLIC_WINDOWS_SERVER_WS || 'ws://194.36.89.175:8001'
+  return `${base}/research/${jobId}/ws?key=${API_KEY}`
+}
 
 interface UseResearchWSReturn {
   status: 'connecting' | 'connected' | 'disconnected' | 'done' | 'error'
@@ -30,8 +44,20 @@ export function useResearchWebSocket(jobId: string | null): UseResearchWSReturn 
   const connect = useCallback(() => {
     if (!jobId || !mountedRef.current) return
 
-    const url = `${WINDOWS_SERVER_WS}/research/${jobId}/ws?key=${API_KEY}`
-    const ws = new WebSocket(url)
+    const url = buildWsUrl(jobId)
+    if (!url) return
+
+    let ws: WebSocket
+    try {
+      ws = new WebSocket(url)
+    } catch (e) {
+      console.error('[WS] Failed to create WebSocket:', e)
+      if (mountedRef.current) {
+        setStatus('disconnected')
+        reconnectTimer.current = setTimeout(connect, 5000)
+      }
+      return
+    }
     wsRef.current = ws
 
     ws.onopen = () => {
