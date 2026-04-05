@@ -119,7 +119,7 @@ async def get_products(
             "description": p.description,
             "images": _json.loads(p.images) if isinstance(p.images, str) else p.images,
             "price": p.price,
-            "niche": p.niche,
+            "source_niche": p.niche,
             "created_at": str(p.created_at),
         }
         for p in products
