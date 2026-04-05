@@ -78,7 +78,7 @@ export default function AuthLayout({ children, mode }: AuthLayoutProps) {
                 <span className="text-[var(--primary)] font-bold text-xl">P</span>
               </div>
               <span className="text-white font-bold text-xl tracking-tight">
-                Profitly
+                Profix
               </span>
             </Link>
             <Link
@@ -142,7 +142,7 @@ export default function AuthLayout({ children, mode }: AuthLayoutProps) {
             <div className="w-10 h-10 rounded-xl bg-[var(--primary)] flex items-center justify-center">
               <span className="text-white font-bold text-xl">P</span>
             </div>
-            <span className="text-[var(--text-primary)] font-bold text-xl">Profitly</span>
+            <span className="text-[var(--text-primary)] font-bold text-xl">Profix</span>
           </div>
 
           {/* Header with mode toggle */}

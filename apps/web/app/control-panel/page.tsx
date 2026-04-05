@@ -31,7 +31,7 @@ export default function ControlPanelLogin() {
           <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(0,109,67,0.15)' }}>
             <Lock className="w-7 h-7" style={{ color: '#006d43' }} />
           </div>
-          <h1 className="text-white text-xl font-bold">לוח בקרה — Profitly</h1>
+          <h1 className="text-white text-xl font-bold">לוח בקרה — Profix</h1>
           <p className="text-sm mt-1" style={{ color: '#6b7280' }}>ניהול פנימי של המערכת</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">

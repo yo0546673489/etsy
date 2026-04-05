@@ -22,7 +22,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-semibold mb-4">1. Acceptance of Terms</h2>
               <p className="text-[var(--text-muted)] leading-relaxed">
-                By accessing and using the Profitlymation Platform ("Service"), you accept and agree to be bound by the terms and provision of this agreement.
+                By accessing and using the Profix Platform ("Service"), you accept and agree to be bound by the terms and provision of this agreement.
               </p>
             </section>
 
@@ -64,7 +64,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-semibold mb-4">6. Limitations</h2>
               <p className="text-[var(--text-muted)] leading-relaxed">
-                In no event shall the Profitlymation Platform or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the Service.
+                In no event shall the Profix Platform or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the Service.
               </p>
             </section>
 

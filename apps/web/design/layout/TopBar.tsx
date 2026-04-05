@@ -100,7 +100,7 @@ export function TopBar() {
 
         {/* 1st = visual RIGHT: Shop name */}
         <div className="text-[var(--primary)] font-bold text-lg flex-shrink-0 mr-2">
-          {shops.find(s => selectedShopIds.includes(s.id))?.display_name || user?.name || 'Profitly'}
+          {shops.find(s => selectedShopIds.includes(s.id))?.display_name || user?.name || 'Profix'}
         </div>
 
         {/* 2nd: flex spacer */}

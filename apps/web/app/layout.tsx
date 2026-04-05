@@ -5,7 +5,7 @@ import { Providers } from './providers';
 const fontClass = 'font-sans';
 
 export const metadata: Metadata = {
-  title: 'Profitlymation Platform',
+  title: 'Profix Platform',
   description: 'Smart automation exclusively for Etsy sellers - Manage listings, sync orders, and grow your shop',
 };
 

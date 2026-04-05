@@ -145,7 +145,7 @@ export function Sidebar() {
           <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center flex-shrink-0">
             <span className="text-[#006d43] font-black text-lg font-headline">P</span>
           </div>
-          <span className="font-black text-xl tracking-tight font-headline">Profitly</span>
+          <span className="font-black text-xl tracking-tight font-headline">Profix</span>
         </Link>
       </div>
 

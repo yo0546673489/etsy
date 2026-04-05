@@ -85,7 +85,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-2">
           <Package className="w-8 h-8 text-blue-600" />
           <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Profitly
+            Profix
           </span>
         </div>
         <div className="flex items-center gap-6">
@@ -119,7 +119,7 @@ export default function LandingPage() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100/60 backdrop-blur-sm rounded-full text-blue-700 text-sm font-medium mb-6">
               <Zap className="w-4 h-4" />
-              Smart Profitlymation
+              Smart Profix
     </div>
           </motion.div>
 
@@ -721,7 +721,7 @@ export default function LandingPage() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Package className="w-6 h-6 text-blue-600" />
-                <span className="text-lg font-bold text-gray-900">Profitly</span>
+                <span className="text-lg font-bold text-gray-900">Profix</span>
               </div>
               <p className="text-gray-600 text-sm">
                 Smart automation for modern Etsy sellers.
@@ -750,7 +750,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="pt-8 border-t border-gray-200/50 text-center text-sm text-gray-500">
-            © 2026 Profitly. All rights reserved.
+            © 2026 Profix. All rights reserved.
           </div>
         </div>
       </footer>

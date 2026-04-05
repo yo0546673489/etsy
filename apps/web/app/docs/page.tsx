@@ -34,7 +34,7 @@ export default function DocsPage() {
           <div>
             <h1 className="text-3xl font-bold text-[var(--text-primary)]">Documentation</h1>
             <p className="text-[var(--text-muted)] mt-1">
-              Learn how to use the Profitlymation Platform
+              Learn how to use the Profix Platform
             </p>
           </div>
         </div>

@@ -1,5 +1,5 @@
 ﻿/**
- * API Client for Profitlymation Platform
+ * API Client for Profix Platform
  * Handles all HTTP requests to the FastAPI backend
  */
 

@@ -26,7 +26,7 @@ export default function ControlPanelLayout({ children }: { children: React.React
     <div className="min-h-screen flex" style={{ background: '#0a0f0d', direction: 'rtl' }}>
       <aside className="w-56 flex flex-col" style={{ background: '#121a16', borderLeft: '1px solid #006d43/20', borderLeftColor: 'rgba(0,109,67,0.2)' }}>
         <div className="px-6 py-5" style={{ borderBottom: '1px solid rgba(0,109,67,0.2)' }}>
-          <p className="text-white font-bold text-lg">Profitly</p>
+          <p className="text-white font-bold text-lg">Profix</p>
           <p className="text-sm mt-0.5" style={{ color: '#006d43' }}>לוח בקרה</p>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">

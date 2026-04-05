@@ -17,7 +17,7 @@ function SuccessContent() {
         </h1>
         <p className="text-[var(--text-muted)] text-sm mb-6">
           <span className="font-semibold text-[var(--text-primary)]">{shopName}</span> has
-          been successfully connected to Profitly. You can now close this window or
+          been successfully connected to Profix. You can now close this window or
           go back to your dashboard.
         </p>
         <a
