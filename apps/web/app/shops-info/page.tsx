@@ -49,17 +49,17 @@ interface FieldDef {
 }
 
 const FIELDS: FieldDef[] = [
-  { key: 'shop_number',  label: 'מספר חנות', placeholder: 'מס\' רץ', numeric: true },
-  { key: 'name',         label: 'שם בעלים',  placeholder: 'שם מלא' },
+  { key: 'shop_number',  label: 'מספר החנות', placeholder: 'מס\' רץ', numeric: true },
   { key: 'email',        label: 'מייל',        placeholder: 'example@gmail.com' },
-  { key: 'former_email', label: 'מייל לשעבר',  placeholder: '' },
   { key: 'password',     label: 'סיסמה',       sensitive: true },
   { key: 'etsy_password',label: 'סיסמה באטסי',  sensitive: true },
   { key: 'phone',         label: 'טלפון מחובר', placeholder: 'מספר טלפון' },
   { key: 'credit_card',   label: "מס' אשראי" },
   { key: 'bank',          label: 'בנק' },
-  { key: 'proxy',         label: 'פרוקסי / IP' },
+  { key: 'proxy',         label: 'מס פרוקסי' },
+  { key: 'former_email', label: 'מייל לשעבר',  placeholder: '' },
   { key: 'ebay',          label: 'איביי' },
+  { key: 'name',         label: 'שם',  placeholder: 'שם מלא' },
   { key: 'notes',         label: 'הערות', wide: true },
 ];
 
