@@ -358,10 +358,9 @@ class FinancialService:
             inter_gap = max(1, (last_deposit_dt - prev_deposit_dt).days)
             days_since_last = (now - last_deposit_dt).days
 
-            # Payout is overdue only if noticeably past the normal cycle length.
-            # Buffer of 2 days to avoid showing "available" right before the
-            # regular scheduled payout fires.
-            if days_since_last <= inter_gap + 2:
+            # Payout is overdue only if past the normal cycle length.
+            # Small buffer (1 day) to avoid flicker right on cycle boundary.
+            if days_since_last < inter_gap + 1:
                 return 0
 
             # Overdue: the full positive balance is effectively ready for payout.
