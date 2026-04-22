@@ -104,7 +104,7 @@ function CopyButton({ value, className = '' }: { value: string | null | undefine
 }
 
 function SensitiveValue({ value }: { value: string | null | undefined }) {
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(true);
   if (!value) return <span className="text-gray-300">—</span>;
   return (
     <span className="inline-flex items-center gap-2">
