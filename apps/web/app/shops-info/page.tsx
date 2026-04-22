@@ -20,6 +20,8 @@ import {
   Save,
   Eye,
   EyeOff,
+  LayoutGrid,
+  List as ListIcon,
 } from 'lucide-react';
 
 // ── Field definitions (order + labels) ────────────────────────────
@@ -246,6 +248,17 @@ export default function ShopsInfoPage() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<ShopCredential | null>(null);
+  const [view, setView] = useState<'cards' | 'list'>('cards');
+
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('shopsInfo.view');
+      if (v === 'cards' || v === 'list') setView(v);
+    } catch { /* no-op */ }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem('shopsInfo.view', view); } catch { /* no-op */ }
+  }, [view]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -309,6 +322,32 @@ export default function ShopsInfoPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1">
+              <button
+                onClick={() => setView('cards')}
+                title="תצוגת כרטיסים"
+                className={
+                  'px-2.5 py-1.5 rounded-lg text-sm inline-flex items-center gap-1.5 transition-all ' +
+                  (view === 'cards'
+                    ? 'bg-[#006d43] text-white shadow'
+                    : 'text-gray-500 hover:text-gray-800')
+                }
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setView('list')}
+                title="תצוגת רשימה"
+                className={
+                  'px-2.5 py-1.5 rounded-lg text-sm inline-flex items-center gap-1.5 transition-all ' +
+                  (view === 'list'
+                    ? 'bg-[#006d43] text-white shadow'
+                    : 'text-gray-500 hover:text-gray-800')
+                }
+              >
+                <ListIcon className="w-4 h-4" />
+              </button>
+            </div>
             <div className="relative">
               <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -354,7 +393,7 @@ export default function ShopsInfoPage() {
               </button>
             )}
           </div>
-        ) : (
+        ) : view === 'cards' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((r) => (
               <ShopCard
@@ -365,6 +404,12 @@ export default function ShopsInfoPage() {
               />
             ))}
           </div>
+        ) : (
+          <ShopsTable
+            rows={filtered}
+            onEdit={openEdit}
+            onDelete={handleDelete}
+          />
         )}
       </div>
 
@@ -451,6 +496,94 @@ function ShopCard({
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ── List (rows) view ──────────────────────────────────────────────
+function ShopsTable({
+  rows,
+  onEdit,
+  onDelete,
+}: {
+  rows: ShopCredential[];
+  onEdit: (r: ShopCredential) => void;
+  onDelete: (r: ShopCredential) => void;
+}) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead className="bg-gradient-to-l from-[#006d43] to-[#00a86b] text-white text-[13px]">
+            <tr>
+              <th className="px-3 py-3 text-right font-bold whitespace-nowrap w-14">#</th>
+              {FIELDS.filter((f) => f.key !== 'shop_number').map((f) => (
+                <th key={f.key} className="px-3 py-3 text-right font-bold whitespace-nowrap">
+                  {f.label}
+                </th>
+              ))}
+              <th className="px-3 py-3 text-center font-bold whitespace-nowrap w-24">פעולות</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {rows.map((r, idx) => (
+              <tr
+                key={r.id}
+                className={(idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60') + ' hover:bg-[#006d43]/5 transition-colors'}
+              >
+                <td className="px-3 py-2.5 font-bold text-[#006d43] whitespace-nowrap">
+                  {r.shop_number ?? '—'}
+                </td>
+                {FIELDS.filter((f) => f.key !== 'shop_number').map((f) => {
+                  const value = r[f.key] as string | null | undefined;
+                  const empty = value == null || value === '';
+                  const ltr = f.key === 'email' || f.key === 'former_email' || f.key === 'proxy';
+                  return (
+                    <td key={f.key} className="px-3 py-2.5 align-middle">
+                      <div className="inline-flex items-center gap-2 max-w-[240px]">
+                        <span className="min-w-0 truncate">
+                          {empty ? (
+                            <span className="text-gray-300">—</span>
+                          ) : f.sensitive ? (
+                            <SensitiveValue value={value} />
+                          ) : (
+                            <span
+                              className="font-mono text-[13px] truncate inline-block max-w-[200px] align-middle"
+                              style={ltr ? { direction: 'ltr' } : undefined}
+                              title={String(value)}
+                            >
+                              {String(value)}
+                            </span>
+                          )}
+                        </span>
+                        <CopyButton value={value} />
+                      </div>
+                    </td>
+                  );
+                })}
+                <td className="px-3 py-2.5 whitespace-nowrap">
+                  <div className="flex items-center justify-center gap-1">
+                    <button
+                      onClick={() => onEdit(r)}
+                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-[#006d43] hover:text-white text-gray-600 flex items-center justify-center transition-all"
+                      title="עריכה"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(r)}
+                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-red-500 hover:text-white text-gray-600 flex items-center justify-center transition-all"
+                      title="מחיקה"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
